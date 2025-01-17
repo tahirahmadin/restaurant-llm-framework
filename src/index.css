@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary: #1a1b1e;
+  --secondary: #f3f4f6;
+  --accent: #ff6b2c;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --background: #ffffff;
+}
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+body {
+  @apply bg-[#f9fafb] font-['Inter',sans-serif];
+}
+
+.sidebar {
+  @apply border-r border-gray-200 flex flex-col;
+  background: #F5F3F2;
+}
+
+.chat-item {
+  @apply flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors;
+}
+
+.chat-item.active {
+  @apply bg-gray-50 text-gray-900;
+}
+
+.wallet-adapter-button-custom {
+  @apply font-medium py-1 px-2 rounded-md text-[11px] w-full transition-all !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: 0.025em;
+  background: #ff6b2c !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.wallet-adapter-button-custom:hover {
+  background: #e85a1f !important;
+  transform: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+.wallet-adapter-button-custom:active {
+  transform: none !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
+}
+
+.wallet-adapter-dropdown {
+  @apply w-full;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.wallet-adapter-button-trigger {
+  @apply w-full justify-center;
+  border: none !important;
+  height: auto !important;
+  padding: 0 !important;
+}
+
+.wallet-adapter-button-start-icon {
+  display: none !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  font-family: 'Inter', sans-serif !important;
+}
