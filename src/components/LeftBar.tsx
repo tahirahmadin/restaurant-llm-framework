@@ -1,5 +1,5 @@
 import React from 'react';
-import { MessageSquarePlus, Settings, User, ChefHat, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { MessageSquarePlus, Settings, User, ChefHat, PanelLeftClose, PanelLeft, Menu } from 'lucide-react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
@@ -10,6 +10,7 @@ interface LeftBarProps {
   setMessages: (messages: any[]) => void;
   setShowAccount: (show: boolean) => void;
   setShowSetup: (show: boolean) => void;
+  setShowMenuManagement: (show: boolean) => void; // New prop for Menu Management
   restaurantName: string;
 }
 
@@ -20,7 +21,8 @@ export function LeftBar({
   setMessages,
   setShowAccount,
   setShowSetup,
-  restaurantName
+  setShowMenuManagement, // New prop
+  restaurantName,
 }: LeftBarProps) {
   const { publicKey } = useWallet();
 
@@ -65,7 +67,7 @@ export function LeftBar({
             {isExpanded && <span>New Chat</span>}
           </button>
         </div>
-        
+
         <nav className="px-2 flex-1 overflow-y-auto">
           <div className="mb-2 px-2">
             <h2 className={`${isExpanded ? 'text-xs font-medium text-gray-400 uppercase' : 'sr-only'}`}>
@@ -89,7 +91,16 @@ export function LeftBar({
 
         <div className="mt-auto border-t border-gray-200 pt-2 space-y-1">
           <div className={`${isExpanded ? 'px-4' : 'px-2'} w-full py-3`}>
-            <WalletMultiButton className="wallet-adapter-button-custom" style={{backgroundColor:'#F05024',color:"white",maxHeight:"40px",maxWidth:200,fontSize:14}}/>
+            <WalletMultiButton
+              className="wallet-adapter-button-custom"
+              style={{
+                backgroundColor: '#F05024',
+                color: 'white',
+                maxHeight: '40px',
+                maxWidth: 200,
+                fontSize: 14,
+              }}
+            />
             {restaurantName && (
               <div className="flex items-center gap-2 mt-2 px-2">
                 <ChefHat className="w-4 h-4 text-[#ff6b2c]" />
@@ -99,6 +110,13 @@ export function LeftBar({
               </div>
             )}
           </div>
+          <button
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
+            onClick={() => setShowMenuManagement(true)} // Show Menu Management
+          >
+            <Menu size={18} />
+            {isExpanded && <span>Menu Management</span>}
+          </button>
           <button
             className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg"
             onClick={() => setShowSetup(true)}

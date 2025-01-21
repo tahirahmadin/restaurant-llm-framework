@@ -3,6 +3,8 @@ import { LeftBar } from "./components/LeftBar";
 import { ChatPanel } from "./components/ChatPanel";
 import { Settings } from "./components/Settings";
 import { Account } from "./components/Account";
+import MenuManagement from "./components/MenuManagement";
+import { Toaster, toast } from "sonner";
 
 interface Message {
   id: string;
@@ -16,29 +18,30 @@ interface RestaurantDetails {
   contactNo: string;
   address: string;
   menu: File | null;
+  restaurantId: string;
 }
 
 function App() {
   const [showAccount, setShowAccount] = useState(false);
   const [showSetup, setShowSetup] = useState(false);
+  const [showMenuManagement, setShowMenuManagement] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isExpanded, setIsExpanded] = useState(true);
   const [setupStep, setSetupStep] = useState(1);
-  const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(
-    {
-      name: "",
-      contactNo: "",
-      address: "",
-      menu: null,
-    }
-  );
+  const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>({
+    name: "",
+    contactNo: "",
+    address: "",
+    menu: null,
+    restaurantId: "", // Initialize restaurantId
+  });
 
   const handleRestaurantSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Here you would typically send the data to your backend
     console.log("Restaurant details:", restaurantDetails);
     setShowSetup(false);
+    toast.success("Restaurant setup saved successfully!");
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,6 +50,7 @@ function App() {
         ...prev,
         menu: e.target.files![0],
       }));
+      toast.success("File uploaded successfully!");
     }
   };
 
@@ -54,33 +58,27 @@ function App() {
     e.preventDefault();
     if (!input.trim()) return;
 
-    const trimmedInput = input.trim();
-
-    // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
-      content: trimmedInput,
+      content: input.trim(),
       type: "user",
       timestamp: new Date(),
     };
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
+    const botMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      content: `You said: ${input}`,
+      type: "bot",
+      timestamp: new Date(),
+    };
 
-    // Simulate bot response with loading state
-    setTimeout(() => {
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        content: `You said: ${trimmedInput}`,
-        type: "bot",
-        timestamp: new Date(),
-      };
-      setMessages((prev) => [...prev, botMessage]);
-    }, 1000);
+    setMessages((prev) => [...prev, userMessage, botMessage]);
+    setInput("");
   };
 
   return (
     <div className="flex h-screen bg-[#fff8f5] relative">
+      <Toaster position="top-right" />
       <LeftBar
         isExpanded={isExpanded}
         setIsExpanded={setIsExpanded}
@@ -88,6 +86,7 @@ function App() {
         setMessages={setMessages}
         setShowAccount={setShowAccount}
         setShowSetup={setShowSetup}
+        setShowMenuManagement={setShowMenuManagement}
         restaurantName={restaurantDetails.name}
       />
 
@@ -105,14 +104,18 @@ function App() {
 
         <Account showAccount={showAccount} setShowAccount={setShowAccount} />
 
-        {!showSetup && (
-          <ChatPanel
-            messages={messages}
-            input={input}
-            setInput={setInput}
-            handleSubmit={handleSubmit}
-            showAccount={showAccount}
-          />
+        {showMenuManagement && restaurantDetails.restaurantId ? (
+          <MenuManagement restaurantId={restaurantDetails.restaurantId} />
+        ) : (
+          !showSetup && (
+            <ChatPanel
+              messages={messages}
+              input={input}
+              setInput={setInput}
+              handleSubmit={handleSubmit}
+              showAccount={showAccount}
+            />
+          )
         )}
       </div>
     </div>

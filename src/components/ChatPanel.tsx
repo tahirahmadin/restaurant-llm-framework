@@ -1,5 +1,5 @@
-import React from "react";
-import { Bot, User, Send, Store } from "lucide-react";
+import React, { useState } from "react";
+import { Bot, User, Send, Store, Package, Plus, Edit } from "lucide-react";
 
 interface Message {
   id: string;
@@ -8,26 +8,95 @@ interface Message {
   timestamp: Date;
 }
 
-interface ChatPanelProps {
-  messages: Message[];
-  input: string;
-  setInput: (input: string) => void;
-  handleSubmit: (e: React.FormEvent) => void;
-  showAccount: boolean;
+interface InventoryItem {
+  name: string;
+  quantity: number;
 }
 
-export function ChatPanel({
-  messages,
-  input,
-  setInput,
-  handleSubmit,
-  showAccount,
-}: ChatPanelProps) {
+export function ChatPanel() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [inventory, setInventory] = useState<InventoryItem[]>([
+    { name: "Dunkin Donut", quantity: 10 },
+    { name: "Pizza", quantity: 5 },
+    { name: "Sprite", quantity: 8 },
+  ]);
+  const [menu, setMenu] = useState<string[]>([
+    "Dunkin Donut",
+    "Pizza",
+    "Sprite",
+  ]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const newMessage: Message = {
+      id: Date.now().toString(),
+      content: input,
+      type: "user",
+      timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, newMessage]);
+    setInput("");
+
+    simulateBotResponse(input);
+  };
+
+  const simulateBotResponse = (order: string) => {
+    setTimeout(() => {
+      // Simulate processing order
+      const updatedInventory = inventory.map((item) => {
+        const regex = new RegExp(`\\b${item.name}\\b`, "i");
+        if (regex.test(order)) {
+          return { ...item, quantity: Math.max(item.quantity - 1, 0) };
+        }
+        return item;
+      });
+
+      setInventory(updatedInventory);
+
+      const outOfStockItems = updatedInventory
+        .filter((item) => item.quantity === 0)
+        .map((item) => item.name);
+
+      const updatedMenu = menu.filter((menuItem) => !outOfStockItems.includes(menuItem));
+      setMenu(updatedMenu);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now().toString(),
+          content: `Order received: ${order}. Inventory updated.`,
+          type: "bot",
+          timestamp: new Date(),
+        },
+      ]);
+    }, 1000);
+  };
+
+  const handleNewOrder = () => {
+    const order = "1 Dunkin Donut, 1 Pizza, and 1 Sprite";
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        content: `New Order: ${order}`,
+        type: "bot",
+        timestamp: new Date(),
+      },
+    ]);
+
+    simulateBotResponse(order);
+    
+
+  };
+
   return (
     <>
-      <div
-        className={`flex-1 overflow-y-auto p-6 ${showAccount ? "hidden" : ""}`}
-      >
+      {/* Chat Section */}
+      <div className="flex-1 overflow-y-auto p-6">
         <div className="space-y-6 max-w-4xl mx-auto">
           <div className="flex items-center gap-3 pb-4 border-b border-gray-300">
             <div className="flex items-center gap-3">
@@ -44,39 +113,26 @@ export function ChatPanel({
           </div>
 
           <div className="space-y-6">
-            {messages.length === 0 ? (
-              <div className="text-center py-8">
-                <Bot size={48} className="text-[#ff6b2c] mx-auto mb-4" />
-                <h3 className="text-xl font-medium text-gray-700 mb-2">
-                  Intelligent Restaurant Agent
-                </h3>
-                <p className="text-gray-500 max-w-md mx-auto">
-                  Manage orders, inventory, and restaurant operations with
-                  intelligence.
-                </p>
-              </div>
-            ) : (
-              messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-4 ${
-                    message.type === "bot" ? "bg-[#fff1eb]" : ""
-                  } p-4 rounded-lg`}
-                >
-                  {message.type === "bot" ? (
-                    <Bot className="w-6 h-6 text-[#ff6b2c]" />
-                  ) : (
-                    <User className="w-6 h-6 text-gray-500" />
-                  )}
-                  <div className="flex-1">
-                    <p className="text-gray-800">{message.content}</p>
-                    <span className="text-xs text-gray-400 mt-1">
-                      {message.timestamp.toLocaleTimeString()}
-                    </span>
-                  </div>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-4 ${
+                  message.type === "bot" ? "bg-[#fff1eb]" : ""
+                } p-4 rounded-lg`}
+              >
+                {message.type === "bot" ? (
+                  <Bot className="w-6 h-6 text-[#ff6b2c]" />
+                ) : (
+                  <User className="w-6 h-6 text-gray-500" />
+                )}
+                <div className="flex-1">
+                  <p className="text-gray-800">{message.content}</p>
+                  <span className="text-xs text-gray-400 mt-1">
+                    {message.timestamp.toLocaleTimeString()}
+                  </span>
                 </div>
-              ))
-            )}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -102,6 +158,47 @@ export function ChatPanel({
               <span>Send</span>
             </button>
           </form>
+        </div>
+      </div>
+
+      {/* Order Management */}
+      <div className="border-t border-gray-300 p-4 bg-gray-50">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <button
+            onClick={handleNewOrder}
+            className="flex items-center gap-2 px-4 py-2 bg-[#ff6b2c] text-white rounded-lg hover:bg-[#e85a1f]"
+          >
+            <Plus size={18} />
+            <span>Simulate New Order</span>
+          </button>
+
+          <div className="p-4 bg-white rounded-lg shadow-md">
+            <h3 className="font-medium text-gray-800 mb-4">Inventory</h3>
+            <ul className="space-y-2">
+              {inventory.map((item) => (
+                <li
+                  key={item.name}
+                  className={`flex justify-between ${
+                    item.quantity === 0 ? "text-red-500" : "text-gray-800"
+                  }`}
+                >
+                  <span>{item.name}</span>
+                  <span>{item.quantity}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="p-4 bg-white rounded-lg shadow-md">
+            <h3 className="font-medium text-gray-800 mb-4">Menu</h3>
+            <ul className="space-y-2">
+              {menu.map((item) => (
+                <li key={item} className="text-gray-800">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
     </>
