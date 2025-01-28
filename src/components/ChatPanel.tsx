@@ -61,7 +61,9 @@ export function ChatPanel() {
         .filter((item) => item.quantity === 0)
         .map((item) => item.name);
 
-      const updatedMenu = menu.filter((menuItem) => !outOfStockItems.includes(menuItem));
+      const updatedMenu = menu.filter(
+        (menuItem) => !outOfStockItems.includes(menuItem)
+      );
       setMenu(updatedMenu);
 
       setMessages((prev) => [
@@ -89,8 +91,6 @@ export function ChatPanel() {
     ]);
 
     simulateBotResponse(order);
-    
-
   };
 
   return (
@@ -162,7 +162,7 @@ export function ChatPanel() {
       </div>
 
       {/* Order Management */}
-      <div className="border-t border-gray-300 p-4 bg-gray-50">
+      {/* <div className="border-t border-gray-300 p-4 bg-gray-50">
         <div className="max-w-4xl mx-auto space-y-6">
           <button
             onClick={handleNewOrder}
@@ -200,7 +200,7 @@ export function ChatPanel() {
             </ul>
           </div>
         </div>
-      </div>
+      </div> */}
     </>
   );
 }
