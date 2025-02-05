@@ -105,15 +105,18 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
     return extractedText;
   };
 
+  const OPENAI_KEY = import.meta.env.VITE_PUBLIC_OPENAI_API_KEY;
+
   const processBasicJSON = async (textContent: string) => {
     setProcessingStep("Creating basic JSON structure...");
     try {
       console.log("Starting basic JSON conversion with text:", textContent.substring(0, 200) + "...");
       
-      const response = await fetch(`${API_URL}/api/openai/chat`, {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_KEY}`,
         },
         body: JSON.stringify({
           model: "gpt-4o",
@@ -186,10 +189,11 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
       try {
         console.log(`Processing batch ${batchNumber} with ${batchItems.length} items:`, batchItems);
         
-        const response = await fetch(`${API_URL}/api/openai/chat`, {
+        const response = await fetch("https://api.openai.com/v1/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${OPENAI_KEY}`,
           },
           body: JSON.stringify({
             model: "gpt-4o",
