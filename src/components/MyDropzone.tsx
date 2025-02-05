@@ -8,6 +8,8 @@ import useUploadStatus from "../store/useUploadStatus";
 import { toast } from "sonner";
 import { API_URL } from "../config";
 
+pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
 interface FileUploadState {
   File: File | null;
   extractedText?: string; 
