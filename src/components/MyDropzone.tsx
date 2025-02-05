@@ -1,12 +1,18 @@
-import React, { useCallback, useState, FormEvent } from "react";
+import React, { useCallback, useState, FormEvent, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, Trash2 } from "lucide-react";
 import { Progress } from "./ui/progress";
-import { PDFDocument } from 'pdf-lib';
 import mammoth from "mammoth";
 import useUploadStatus from "../store/useUploadStatus";
 import { toast } from "sonner";
 import { API_URL } from "../config";
+import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/build/pdf";
+import "pdfjs-dist/build/pdf.worker.entry"; // Ensures worker is loaded correctly
+
+// Set worker source
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js`;
+
+
 interface FileUploadState {
   File: File | null;
   extractedText?: string; 
@@ -60,17 +66,18 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
 
     try {
       if (file.type === "application/pdf") {
+        // Read file as ArrayBuffer
         const arrayBuffer = await file.arrayBuffer();
-        const pdfDoc = await PDFDocument.load(arrayBuffer);
-        const numberOfPages = pdfDoc.getPages().length;
-        
-        let textContent = [];
-        for(let i = 0; i < numberOfPages; i++) {
-          const page = pdfDoc.getPages()[i];
-          const text = await page.doc.getText();
-          textContent.push(text);
+        const pdf = await getDocument({ data: arrayBuffer }).promise;
+        let textContent = "";
+  
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const text = await page.getTextContent();
+          textContent += text.items.map((item: any) => item.str).join(" ") + "\n";
         }
-        extractedText = textContent.join('\n');
+  
+        extractedText = textContent;
       } else if (
         file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
         file.type === "application/msword"
