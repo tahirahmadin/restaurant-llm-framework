@@ -2,14 +2,11 @@ import React, { useCallback, useState, FormEvent } from "react";
 import { useDropzone } from "react-dropzone";
 import { Upload, Trash2 } from "lucide-react";
 import { Progress } from "./ui/progress";
-import * as pdfjsLib from "pdfjs-dist/build/pdf";
+import { PDFDocument } from 'pdf-lib';
 import mammoth from "mammoth";
 import useUploadStatus from "../store/useUploadStatus";
 import { toast } from "sonner";
 import { API_URL } from "../config";
-
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
-
 interface FileUploadState {
   File: File | null;
   extractedText?: string; 
@@ -63,18 +60,17 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
 
     try {
       if (file.type === "application/pdf") {
-        const pdfData = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: pdfData }).promise;
-        const textPromises = [];
-
-        for (let i = 0; i < pdf.numPages; i++) {
-          const page = await pdf.getPage(i + 1);
-          const textContent = await page.getTextContent();
-          const pageText = textContent.items.map((item: any) => item.str).join(" ");
-          textPromises.push(pageText);
+        const arrayBuffer = await file.arrayBuffer();
+        const pdfDoc = await PDFDocument.load(arrayBuffer);
+        const numberOfPages = pdfDoc.getPages().length;
+        
+        let textContent = [];
+        for(let i = 0; i < numberOfPages; i++) {
+          const page = pdfDoc.getPages()[i];
+          const text = await page.doc.getText();
+          textContent.push(text);
         }
-
-        extractedText = (await Promise.all(textPromises)).join("\n");
+        extractedText = textContent.join('\n');
       } else if (
         file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
         file.type === "application/msword"
