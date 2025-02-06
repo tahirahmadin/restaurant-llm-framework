@@ -1,20 +1,20 @@
 import React, { useState, useRef } from 'react';
 import { ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
-import { API_URL } from '../config'; 
+import { API_URL } from '../config';
 
 interface ImageUploaderProps {
   currentImage: string;
   onImageUpdate: (newUrl: string) => void;
-  restaurantName: string;
-  itemName: string;
+  restaurantId: number; 
+  itemId: number;     
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({
   currentImage,
   onImageUpdate,
-  restaurantName,
-  itemName
+  restaurantId,
+  itemId
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(currentImage);
@@ -23,17 +23,21 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
   const uploadToServer = async (file: File) => {
     try {
       const formData = new FormData();
-      formData.append('file', file);  // ✅ Use 'file' to match backend multer field
-      formData.append('restaurantName', restaurantName);
-      formData.append('itemName', itemName);
+      formData.append('file', file);
+      formData.append('restaurantId', restaurantId.toString());
+      formData.append('itemId', itemId.toString());
 
-      const response = await fetch(`${API_URL}/api/upload`, {
+      const response = await fetch(`${API_URL}/api/upload/uploadImage`, {  // Updated endpoint
         method: 'POST',
         body: formData,
       });
 
       const data = await response.json();
-      if (!data.success) throw new Error('Upload failed');
+      if (!data.success) throw new Error(data.error || 'Upload failed');
+      if (!data.fileUrl) {
+        throw new Error('No file URL received from server');
+      }
+  
 
       return data.fileUrl;
     } catch (error) {
@@ -51,12 +55,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       return;
     }
 
-    const MAX_SIZE = 50 * 1024 * 1024;
+    const MAX_SIZE = 50 * 1024 * 1024;  // 50MB max size
     if (file.size > MAX_SIZE) {
       toast.error('Image size should be less than 50MB');
       return;
     }
 
+    // Show preview immediately after selection
     const reader = new FileReader();
     reader.onload = () => {
       setPreviewImage(reader.result as string);
@@ -72,6 +77,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       toast.success('Image uploaded successfully!');
     } catch (error) {
       toast.error('Failed to upload image');
+      // Revert to previous image if upload fails
+      setPreviewImage(currentImage);
     } finally {
       setIsUploading(false);
     }
@@ -88,7 +95,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       {previewImage ? (
         <img
           src={previewImage}
-          alt={itemName}
+          alt={`Item ${itemId}`}  // Updated alt text
           className="w-24 h-24 object-cover rounded"
         />
       ) : (

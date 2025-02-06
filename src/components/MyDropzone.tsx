@@ -37,7 +37,7 @@ interface MyDropzoneProps {
   FileUpload?: FileUploadState;
   setFileUpload: (file: FileUploadState) => void;
   onMenuProcessed: (menuItems: MenuItem[]) => void;
-  restaurantId: string;
+  restaurantId: number;
 }
 
 const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extractedText: "" }, setFileUpload, onMenuProcessed,restaurantId }) => {
@@ -310,11 +310,11 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
         };
     
         console.log('Sending to API:', {
-          url: `${API_URL}/api/restaurants/${restaurantId}/menu`,
+          url: `${API_URL}/api/restaurant/updateMenu/${restaurantId}`,
           payload: JSON.stringify(apiPayload, null, 2)
         });
     
-        const response = await fetch(`${API_URL}/api/restaurants/${restaurantId}/menu`, {
+        const response = await fetch(`${API_URL}/api/restaurant/updateMenu/${restaurantId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json'

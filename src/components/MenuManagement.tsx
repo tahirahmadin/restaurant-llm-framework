@@ -90,7 +90,7 @@ const emptyCustomisation: ItemCustomisation = {
    3) Props for the main component
    ------------------------------------------------------------------ */
 interface MenuManagementProps {
-  restaurantId: string;
+  restaurantId: number;
   restaurantName: string;
   initialMenuData?: MenuItem[];
   initialCustomisations?: ItemCustomisation[];
@@ -226,27 +226,47 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
   // Manually save changes
   const handleSaveChanges = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/restaurants/${restaurantId}/menu`, {
+      const response = await fetch(`${API_URL}/api/restaurant/updateMenu/${restaurantId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          menuItems,
-          customisations,
+          menuItems: menuItems.map(item => ({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            category: item.category,
+            price: Number(item.price),
+            image: item.image,
+            spicinessLevel: Number(item.spicinessLevel),
+            sweetnessLevel: Number(item.sweetnessLevel),
+            dietaryPreference: item.dietaryPreference,
+            healthinessScore: Number(item.healthinessScore),
+            caffeineLevel: item.caffeineLevel,
+            sufficientFor: Number(item.sufficientFor),
+            available: Boolean(item.available)
+          })),
+          customisations: customisations
         })
       });
   
       if (!response.ok) {
-        throw new Error('Failed to save menu changes');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save menu changes');
       }
   
-      onUpdate(menuItems, customisations);
-      toast.success('Changes saved successfully!');
-      setHasChanges(false);
+      const data = await response.json();
+      if (data.success) {
+        onUpdate(menuItems, customisations);
+        toast.success('Changes saved successfully!');
+        setHasChanges(false);
+      } else {
+        throw new Error(data.error || 'Failed to save menu changes');
+      }
     } catch (error) {
       console.error('Error saving changes:', error);
-      toast.error('Failed to save changes');
+      toast.error(error instanceof Error ? error.message : 'Failed to save changes');
     }
   };
 
@@ -563,8 +583,8 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                         <ImageUploader
                           currentImage={selectedItem.image}
                           onImageUpdate={(newUrl) => handleFieldEdit(selectedItem.id, 'image', newUrl)}
-                          restaurantName={restaurantName}
-                          itemName={selectedItem.name || `item-${selectedItem.id}`}
+                          restaurantId={Number(restaurantId)}  // Convert string restaurantId to number
+                          itemId={selectedItem.id}            // Use the selected item's id
                         />
                         {/* Button to remove image */}
                         {selectedItem.image && (
