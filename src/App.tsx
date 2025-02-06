@@ -49,15 +49,21 @@ interface ItemCustomisation {
 }
 
 interface RestaurantDetails {
-  restaurantId?: string;
+  restaurantId?: number;  
   name: string;
   contactNo: string;
   address: string;
   location?: {
-    latitude: number;
-    longitude: number;
+    type?: string; 
+    coordinates: [number, number];  
   };
   isOnline?: boolean;
+  menuSummary: string;  
+  menuUploaded?: boolean;  
+  menu?: {
+    File?: File | null;
+    extractedText?: string;
+  };
 }
 
 function App() {
@@ -88,8 +94,10 @@ function App() {
       name: "",
       contactNo: "",
       address: "",
-      menu: { File: null, extractedText: "" },
+      menuSummary: "",  
       isOnline: false,
+      menuUploaded: false,  
+      menu: { File: null, extractedText: "" }
     };
   });
 

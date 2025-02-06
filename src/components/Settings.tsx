@@ -11,7 +11,7 @@ interface FileState {
 }
 
 interface RestaurantDetails {
-  restaurantId?: string; // The custom ID (UUID) from the server
+  restaurantId?: number; 
   name: string;
   contactNo: string;
   address: string;
@@ -21,8 +21,7 @@ interface RestaurantDetails {
   };
   isOnline?: boolean;
   /** Short summary or description of the menu items **/
-  menuSummary?: string;
-
+  menuSummary: string;
   // For file uploads (optional)
   menu?: {
     File?: File | null;
@@ -133,7 +132,7 @@ export function Settings({
   /** -----------------------------
    *  Capture Geolocation
    * -----------------------------**/
-  const captureLocation = () => {
+   const captureLocation = () => {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -224,18 +223,18 @@ export function Settings({
           isOnline: restaurantDetails.isOnline ?? false,
         };
   
-        let url = `${API_URL}/api/restaurants`;
-        let method: 'POST' | 'PUT' = 'POST';
+        let url = `${API_URL}/api/restaurant/createRestaurant`;  // Default to create API
+        let method = "POST";  // Default method
   
         if (restaurantDetails.restaurantId) {
-          url += `/${restaurantDetails.restaurantId}`;
-          method = 'PUT';
+          url = `${API_URL}/api/restaurant/updateRestaurant/${restaurantDetails.restaurantId}`;
+          method = "PUT";  // Use PUT for updates
         }
   
         console.log(`Sending ${method} request to:`, url, 'with body:', JSON.stringify(body));
   
         const response = await fetch(url, {
-          method,
+          method: method,
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
@@ -243,25 +242,20 @@ export function Settings({
         const data = await response.json();
         console.log('Server Response:', data);
   
-        if (!response.ok) {
+        if (!data.success) {
           throw new Error(data.error || 'Failed to save restaurant');
         }
   
-        // Update the restaurantId in the state if it's a new restaurant
-        if (method === 'POST') {
-          console.log('Checking received data:', data);
-          if (data.data?.restaurantId) {
-            console.log('Received restaurantId:', data.data.restaurantId);
-            setRestaurantDetails((prev) => ({
-              ...prev,
-              restaurantId: data.data.restaurantId,
-            }));
-          } else {
-            console.error('restaurantId is missing in the response');
-          }
+        // Update local state with response data
+        if (data.success && data.data) {
+          setRestaurantDetails((prev) => ({
+            ...prev,
+            restaurantId: data.data.restaurantId,  // Store ID to switch to update mode
+            menuUploaded: data.data.menuUploaded,
+          }));
         }
   
-        toast.success(data.message || 'Restaurant saved successfully!');
+        toast.success('Restaurant saved successfully!');
       } catch (error: any) {
         console.error('Error saving restaurant details:', error);
         toast.error(error.message || 'Failed to save restaurant details');
