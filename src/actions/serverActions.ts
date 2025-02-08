@@ -12,28 +12,34 @@ export interface OrderItem {
 }
 
 export interface Order {
-  id: string;
-  table: string;
+  _id: string;
+  orderId: string;
   items: OrderItem[];
-  status: "fresh" | "cooking" | "completed";
-  time: string;
+  status: "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED";
+  createdAt: string;
+  updatedAt: string;
+  totalAmount: number;
+  restaurantName: string;
+  user: string;
+  paymentId: string;
+  paymentStatus: string;
+  paymentMethod: string;
   estimatedMinutes?: number;
-  total: number;
 }
 
 export const fetchRestaurantOrders = async (
-  restaurantName: string
+  restaurantId: string
 ): Promise<Order[]> => {
   try {
     const response = await axios.get(
       `${apiUrl}/restaurant/getRestaurantOrders`,
       {
-        params: { restaurantName },
+        params: { restaurantId },
       }
     );
 
     if (response.data && !response.data.error) {
-      return response.data.result;
+      return response.data.data;
     }
 
     throw new Error(response.data.error || "Failed to fetch orders");

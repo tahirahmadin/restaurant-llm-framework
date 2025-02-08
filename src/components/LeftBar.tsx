@@ -47,7 +47,7 @@ export function LeftBar({
     { id: "menu", label: "Menu", icon: MenuIcon },
     { id: "profile", label: "Profile", icon: User },
     { id: "payments", label: "Payments", icon: Wallet },
-    { id: "help", label: "Help", icon: HelpCircle },
+    { id: "help", label: "PMenu", icon: HelpCircle },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 

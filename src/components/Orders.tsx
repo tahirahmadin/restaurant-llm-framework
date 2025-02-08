@@ -40,7 +40,7 @@ export function Orders() {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const fetchedOrders = await fetchRestaurantOrders("Art Of Dum");
+        const fetchedOrders = await fetchRestaurantOrders("5");
         console.log(fetchedOrders);
         setOrders(fetchedOrders);
       } catch (error) {
@@ -206,7 +206,7 @@ export function Orders() {
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-xl font-semibold mb-1">
-                  Order {selectedOrder.orderId}
+                  Order {selectedOrder.orderId.slice(30, 40)}
                 </h2>
               </div>
               <span className="text-[#f15927] bg-orange-100 px-3 py-1 rounded-full">
@@ -215,15 +215,19 @@ export function Orders() {
             </div>
 
             {/* Delivery Location */}
-            <div className="bg-white p-4 rounded-xl border border-gray-200">
-              <h3 className="font-medium mb-3">Delivery Location</h3>
-              <div className="text-gray-600">
-                <p>123 Main Street</p>
-                <p>Apartment 4B</p>
-                <p>Dubai, UAE</p>
-                <p className="mt-2">📞 +971 50 123 4567</p>
+            {selectedOrder.customerDetails && (
+              <div className="bg-white p-4 rounded-xl border border-gray-200">
+                <h3 className="font-medium mb-3">Delivery Location</h3>
+                <div className="text-gray-600">
+                  <p>{selectedOrder.customerDetails.name}</p>
+                  <p>{selectedOrder.customerDetails.address}</p>
+
+                  <p className="mt-2">
+                    📞 {selectedOrder.customerDetails.phone}
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Order Items */}
             <div className="bg-white rounded-xl border border-gray-200">
@@ -236,7 +240,7 @@ export function Orders() {
                   }`}
                 >
                   <img
-                    src={item.image}
+                    src={`https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/5-${item.id}.jpg`}
                     alt={item.name}
                     className="w-16 h-16 rounded-lg object-cover"
                   />
@@ -248,15 +252,12 @@ export function Orders() {
                           {item.description}
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
-                          ${(item.price / 100).toFixed(2)} × {item.quantity}
+                          ${item.price.toFixed(2)} × {item.quantity}
                         </p>
                       </div>
                       <span className="font-semibold">
-                        ${((item.price * item.quantity) / 100).toFixed(2)}
+                        {(item.price * item.quantity).toFixed(2)} AED
                       </span>
-                      {/* <span className="font-semibold">
-                        ${item.price.toFixed(2)}
-                      </span> */}
                     </div>
                   </div>
                 </div>
@@ -289,38 +290,10 @@ export function Orders() {
               )}
 
               <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-gray-600">
-                  <span>
-                    Items(
-                    {selectedOrder.items.reduce(
-                      (acc, item) => acc + item.quantity,
-                      0
-                    )}
-                    )
-                  </span>
-                  <span>${(selectedOrder.totalAmount / 100).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Delivery Fee</span>
-                  <span>$5.00</span>
-                </div>
-                <div className="flex justify-between text-gray-600">
-                  <span>Tax</span>
-                  <span>
-                    ${((selectedOrder.totalAmount * 0.05) / 100).toFixed(2)}
-                  </span>
-                </div>
-
-                <div className="flex justify-between font-semibold text-lg pt-2 border-t">
+                <div className="flex justify-between font-semibold text-lg pt-2 ">
                   <span>Total</span>
                   <span>
-                    $
-                    {(
-                      (selectedOrder.totalAmount +
-                        500 +
-                        selectedOrder.totalAmount * 0.05) /
-                      100
-                    ).toFixed(2)}
+                    {(selectedOrder.totalAmount / 100).toFixed(2)} AED
                   </span>
                 </div>
               </div>
