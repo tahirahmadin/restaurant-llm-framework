@@ -1,8 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Search, Filter, Clock } from "lucide-react";
-import { fetchRestaurantOrders } from "../actions/serverActions";
+import {
+  fetchRestaurantOrders,
+  updateOrderStatus as updateOrderStatusAPI,
+} from "../actions/serverActions";
 import useOrderStore from "../store/useOrderStore";
 import { toast } from "sonner";
+
+interface CustomerDetails {
+  name: string;
+  phone: string;
+  address: string;
+  email?: string;
+}
 
 interface Order {
   _id: string;
@@ -17,6 +27,7 @@ interface Order {
   paymentId: string;
   paymentStatus: string;
   paymentMethod: string;
+  customerDetails: CustomerDetails;
 }
 
 interface OrderItem {
@@ -40,7 +51,7 @@ export function Orders() {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const fetchedOrders = await fetchRestaurantOrders("5");
+        const fetchedOrders = await fetchRestaurantOrders("1");
         console.log(fetchedOrders);
         setOrders(fetchedOrders);
       } catch (error) {
@@ -54,8 +65,32 @@ export function Orders() {
 
   const handleUpdateStatus = (order: Order, newStatus: string) => {
     try {
-      updateOrderStatus(order._id, newStatus);
-      toast.success(`Order ${order._id} status updated to ${newStatus}`);
+      // First update the UI optimistically
+      updateOrderStatus(
+        order._id,
+        newStatus as "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
+      );
+
+      // Then make the API call
+      updateOrderStatusAPI(
+        order._id,
+        newStatus as "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
+      )
+        .then(() => {
+          toast.success(
+            `Order ${order.orderId.slice(
+              30,
+              40
+            )} status updated to ${newStatus}`
+          );
+        })
+        .catch((error) => {
+          // Revert the UI state on error
+          const previousStatus = order.status;
+          updateOrderStatus(order._id, previousStatus);
+          toast.error("Failed to update order status");
+          console.error("Error updating order status:", error);
+        });
     } catch (error) {
       toast.error("Failed to update order status");
       console.error("Error updating order status:", error);
@@ -160,22 +195,24 @@ export function Orders() {
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center gap-2">
                   <span className="font-semibold">
-                    Order: {order.orderId.slice(30, 35)}
+                    Order: {order.orderId.slice(30, 40)}
                   </span>
-                  <span className="text-sm text-gray-500">
-                    User: {order.user.slice(0, 8)}...
+                  <div className="flex flex-col">
+                    <span className="text-sm text-gray-500">
+                      Customer: {order.customerDetails?.name || "N/A"}
+                    </span>
                     {order.estimatedMinutes && (
-                      <span className="ml-2">
-                        Est: {order.estimatedMinutes} mins
+                      <span className="text-sm text-gray-500">
+                        Est. Time: {order.estimatedMinutes} mins
                       </span>
                     )}
-                  </span>
+                  </div>
                 </div>
                 <span
                   className={`px-2 py-1 rounded-full text-sm ${
-                    order.status === "fresh"
+                    order.status === "PROCESSING"
                       ? "bg-yellow-100 text-yellow-600"
-                      : order.status === "cooking"
+                      : order.status === "COOKING"
                       ? "bg-orange-100 text-[#f15927]"
                       : "bg-green-100 text-green-600"
                   }`}
@@ -219,12 +256,22 @@ export function Orders() {
               <div className="bg-white p-4 rounded-xl border border-gray-200">
                 <h3 className="font-medium mb-3">Delivery Location</h3>
                 <div className="text-gray-600">
-                  <p>{selectedOrder.customerDetails.name}</p>
-                  <p>{selectedOrder.customerDetails.address}</p>
-
-                  <p className="mt-2">
-                    📞 {selectedOrder.customerDetails.phone}
+                  <p className="font-medium">
+                    {selectedOrder.customerDetails?.name || "N/A"}
                   </p>
+                  <p className="mt-1">
+                    {selectedOrder.customerDetails?.address || "N/A"}
+                  </p>
+                  <p className="mt-2 flex items-center gap-2">
+                    <span>📞</span>
+                    <span>{selectedOrder.customerDetails?.phone || "N/A"}</span>
+                  </p>
+                  {selectedOrder.customerDetails?.email && (
+                    <p className="mt-1 flex items-center gap-2">
+                      <span>📧</span>
+                      <span>{selectedOrder.customerDetails.email}</span>
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -266,7 +313,7 @@ export function Orders() {
 
             {/* Order Summary */}
             <div className="bg-white p-4 rounded-xl border border-gray-200">
-              {selectedOrder.status === "cooking" && (
+              {selectedOrder.status === "COOKING" && (
                 <form onSubmit={handleUpdateDeliveryTime} className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Estimated Delivery Time (minutes)

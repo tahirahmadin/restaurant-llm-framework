@@ -1,5 +1,12 @@
 import { create } from "zustand";
 
+interface CustomerDetails {
+  name: string;
+  phone: string;
+  address: string;
+  email?: string;
+}
+
 interface OrderItem {
   name: string;
   description?: string;
@@ -22,6 +29,7 @@ interface Order {
   paymentStatus: string;
   paymentMethod: string;
   estimatedMinutes?: number;
+  customerDetails: CustomerDetails;
 }
 
 interface OrderState {

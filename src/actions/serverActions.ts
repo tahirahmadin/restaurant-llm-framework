@@ -12,39 +12,52 @@ export interface OrderItem {
 }
 
 export interface Order {
-  _id: string;
-  orderId: string;
+  id: string;
+  table: string;
   items: OrderItem[];
-  status: "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED";
-  createdAt: string;
-  updatedAt: string;
-  totalAmount: number;
-  restaurantName: string;
-  user: string;
-  paymentId: string;
-  paymentStatus: string;
-  paymentMethod: string;
+  status: "fresh" | "cooking" | "completed";
+  time: string;
   estimatedMinutes?: number;
+  total: number;
 }
 
 export const fetchRestaurantOrders = async (
-  restaurantId: string
+  restaurantName: string
 ): Promise<Order[]> => {
   try {
     const response = await axios.get(
       `${apiUrl}/restaurant/getRestaurantOrders`,
       {
-        params: { restaurantId },
+        params: { restaurantName },
       }
     );
 
     if (response.data && !response.data.error) {
-      return response.data.data;
+      return response.data.result;
     }
 
     throw new Error(response.data.error || "Failed to fetch orders");
   } catch (error) {
     console.error("Error fetching orders:", error);
+    throw error;
+  }
+};
+
+export const updateOrderStatus = async (
+  orderId: string,
+  status: "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
+): Promise<void> => {
+  try {
+    const response = await axios.put(`${apiUrl}/restaurant/updateOrderStatus`, {
+      orderId,
+      status,
+    });
+
+    if (!response.data.success) {
+      throw new Error(response.data.error || "Failed to update order status");
+    }
+  } catch (error) {
+    console.error("Error updating order status:", error);
     throw error;
   }
 };
