@@ -46,8 +46,6 @@ interface RestaurantDetails {
     type?: string;
     coordinates: [number, number];
   };
-  isOnline?: boolean;
-  menuSummary: string;
   menuUploaded?: boolean;
   menu?: {
     File?: File | null;
@@ -85,8 +83,6 @@ export function Help() {
             name: "",
             contactNo: "",
             address: "",
-            menuSummary: "",
-            isOnline: false,
             menuUploaded: false,
             menu: { File: null, extractedText: "" },
           };

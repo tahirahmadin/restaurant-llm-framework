@@ -26,7 +26,6 @@ interface RestaurantDetails {
     latitude: number;
     longitude: number;
   };
-  isOnline?: boolean;
   menu?: {
     File?: File | null;
     extractedText?: string;
@@ -273,7 +272,6 @@ export function Settings({
           contactNo: restaurantDetails.contactNo,
           address: restaurantDetails.address,
           location: restaurantDetails.location,
-          isOnline: restaurantDetails.isOnline ?? false,
         };
 
         let url = `${API_URL}/api/restaurant/createRestaurant`;
