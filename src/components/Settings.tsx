@@ -20,12 +20,15 @@ interface FileState {
 interface RestaurantDetails {
   restaurantId?: number;
   name: string;
+  description: string;
+  image: string;
   contactNo: string;
   address: string;
   location?: {
     latitude: number;
     longitude: number;
   };
+  isOnline?: boolean;
   menu?: {
     File?: File | null;
     extractedText?: string;
@@ -269,9 +272,12 @@ export function Settings({
 
         const body = {
           name: restaurantDetails.name,
+          description: restaurantDetails.description,
+          image: restaurantDetails.image,
           contactNo: restaurantDetails.contactNo,
           address: restaurantDetails.address,
           location: restaurantDetails.location,
+          isOnline: restaurantDetails.isOnline ?? false,
         };
 
         let url = `${API_URL}/api/restaurant/createRestaurant`;

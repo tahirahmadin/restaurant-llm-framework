@@ -60,6 +60,7 @@ interface RestaurantDetails {
     latitude: number;
     longitude: number;
   };
+  isOnline?: boolean;
   menu?: {
     File?: File | null;
     extractedText?: string;
@@ -107,6 +108,7 @@ function App() {
             name: "",
             contactNo: "",
             address: "",
+            isOnline: false,
             menuUploaded: false,
             menu: { File: null, extractedText: "" },
           };
