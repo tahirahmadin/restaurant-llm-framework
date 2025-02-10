@@ -458,386 +458,312 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
   /* ------------------------------------------------------------------
      8) Render
   */
-  return (
-    <div className="flex h-screen bg-gray-100 relative">
-      {/* Left Sidebar */}
-      <div className="w-64 bg-white border-r flex flex-col shadow-sm">
-        <div className="p-4 border-b flex justify-between items-center shrink-0">
-          <h1 className="text-xl font-semibold">{restaurantName}</h1>
-          <button
-            onClick={onClose}
-            className="p-1 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="overflow-y-auto flex-1">
-          {Object.keys(groupedItems).length === 0 ? (
-            <div className="p-8 text-center">
-              <p className="text-gray-500 mb-4">No menu items yet</p>
-              <button
-                onClick={() => addNewRow()}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center mx-auto transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add First Item
-              </button>
+     return (
+      <div className="flex h-screen bg-gray-50">
+        {/* Left Sidebar - Enhanced */}
+        <div className="w-72 bg-white border-r border-gray-200 flex flex-col">
+          <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+            <div>
+              <h1 className="text-xl font-semibold text-gray-900">{restaurantName}</h1>
+              <p className="text-sm text-gray-500 mt-1">Menu Management</p>
             </div>
-          ) : (
-            <>
-              {Object.entries(groupedItems).map(([category, items]) => (
-                <div key={category} className="border-b">
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <X className="w-5 h-5 text-gray-500" />
+            </button>
+          </div>
+  
+          <div className="overflow-y-auto flex-1">
+            {Object.keys(groupedItems).length === 0 ? (
+              <div className="p-8 text-center">
+                <div className="bg-orange-50 rounded-lg p-6 mb-4">
+                  <p className="text-gray-600 mb-4">Start by adding your first menu item</p>
                   <button
-                    onClick={() => toggleCategory(category)}
-                    className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                    onClick={() => addNewRow()}
+                    className="px-4 py-2 bg-[#f15927] text-white rounded-lg hover:bg-[#e54816] transition-colors flex items-center mx-auto"
                   >
-                    <span className="font-medium">{category || 'Uncategorized'}</span>
-                    <ChevronRight
-                      className={`w-4 h-4 transform transition-transform ${
-                        expandedCategories[category] ? 'rotate-90' : ''
-                      }`}
-                    />
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Item
                   </button>
-
-                  {expandedCategories[category] && (
-                    <div className="pl-6">
-                      {items.map(item => (
-                        <button
-                          key={item.id}
-                          onClick={() => setSelectedItem(item)}
-                          className={`w-full p-3 text-left hover:bg-gray-50 transition-colors ${
-                            selectedItem?.id === item.id ? 'bg-blue-50' : ''
-                          }`}
-                        >
-                          {item.name || 'New Item'}
-                          {!item.available && (
-                            <span className="ml-2 text-red-500">(Unavailable)</span>
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              ))}
-            </>
-          )}
-
-          <button
-            onClick={() => addNewRow()}
-            className="w-full p-4 text-blue-600 hover:bg-gray-50 flex items-center transition-colors"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Item
-          </button>
-        </div>
-      </div>
-
-      {/* Main Content (Edit) */}
-      {selectedItem ? (
-        <div className={`flex-1 overflow-y-auto ${confirmDeleteItemId ? 'blur-sm' : ''}`}>
-          <div className="bg-white rounded-lg shadow m-6">
-            {/* Header */}
-            <div className="p-6 border-b flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Edit Item</h2>
-              <div className="flex space-x-4">
-                {/* View JSON */}
-                <button
-                  onClick={handleViewJSON}
-                  className="px-3 py-1 bg-gray-200 text-gray-600 rounded hover:bg-gray-300 text-sm transition-colors"
-                >
-                  View JSON
-                </button>
-
-                {/* Delete -> triggers modal confirmation */}
-                <button
-                  onClick={() => handleDeleteIconClick(selectedItem.id)}
-                  className="text-red-600 hover:text-red-900 transition-colors"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </button>
-
-                {/* Save changes if any */}
-                {hasChanges && (
-                  <button
-                    onClick={handleSaveChanges}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center transition-colors"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    Save Changes
-                  </button>
-                )}
               </div>
-            </div>
-
-            {/* Body */}
-            <div className="p-6">
-              {/* (A) Basic MenuItem fields */}
-              <div className="grid grid-cols-2 gap-6">
-                {orderedColumns.map(key => (
-                  <div key={key} className={key === 'description' ? 'col-span-2' : ''}>
-                    <label className="block mb-2 font-medium capitalize">{key}</label>
-
-                    {key === 'image' ? (
-                      <div className="space-y-2">
-                        <ImageUploader
-                          currentImage={selectedItem.image}
-                          onImageUpdate={(newUrl) => handleFieldEdit(selectedItem.id, 'image', newUrl)}
-                          restaurantId={Number(restaurantId)}  // Convert string restaurantId to number
-                          itemId={selectedItem.id}            // Use the selected item's id
-                        />
-                        {/* Button to remove image */}
-                        {selectedItem.image && (
+            ) : (
+              <div className="space-y-1 p-2">
+                {Object.entries(groupedItems).map(([category, items]) => (
+                  <div key={category} className="rounded-lg overflow-hidden">
+                    <button
+                      onClick={() => toggleCategory(category)}
+                      className="w-full p-4 flex items-center justify-between hover:bg-orange-50 transition-colors rounded-lg"
+                    >
+                      <span className="font-medium text-gray-700">{category || 'Uncategorized'}</span>
+                      <ChevronRight
+                        className={`w-4 h-4 text-gray-400 transform transition-transform duration-200 ${
+                          expandedCategories[category] ? 'rotate-90' : ''
+                        }`}
+                      />
+                    </button>
+  
+                    {expandedCategories[category] && (
+                      <div className="pl-4">
+                        {items.map(item => (
                           <button
-                            onClick={() => handleFieldEdit(selectedItem.id, 'image', '')}
-                            className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition-colors text-sm"
+                            key={item.id}
+                            onClick={() => setSelectedItem(item)}
+                            className={`w-full p-3 text-left rounded-lg transition-colors ${
+                              selectedItem?.id === item.id 
+                                ? 'bg-[#f15927] text-white' 
+                                : 'hover:bg-orange-50 text-gray-700'
+                            }`}
                           >
-                            Remove Image
+                            <div className="flex items-center">
+                              <span className="flex-1">{item.name || 'New Item'}</span>
+                              {!item.available && (
+                                <span className="ml-2 text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">
+                                  Unavailable
+                                </span>
+                              )}
+                            </div>
                           </button>
-                        )}
+                        ))}
                       </div>
-                    ) : key === 'available' ? (
-                      <input
-                        type="checkbox"
-                        checked={selectedItem[key]}
-                        onChange={e => handleFieldEdit(selectedItem.id, key, e.target.checked)}
-                        className="form-checkbox h-5 w-5 text-blue-600"
-                      />
-                    ) : key === 'caffeineLevel' ? (
-                      <select
-                        className="w-full p-2 border rounded"
-                        value={selectedItem[key]}
-                        onChange={e => handleFieldEdit(selectedItem.id, key, e.target.value)}
-                      >
-                        <option value="none">None</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                    ) : key === 'dietaryPreference' ? (
-                      <select
-                        className="w-full p-2 border rounded"
-                        multiple
-                        value={selectedItem[key]}
-                        onChange={e => {
-                          const selectedOpts = Array.from(e.target.selectedOptions).map(
-                            opt => opt.value
-                          );
-                          handleFieldEdit(selectedItem.id, key, selectedOpts.join(','));
-                        }}
-                      >
-                        <option value="veg">Veg</option>
-                        <option value="non-veg">Non-veg</option>
-                        <option value="egg">Egg</option>
-                      </select>
-                    ) : key === 'id' ? (
-                      <input
-                        type="text"
-                        className="w-full p-2 border rounded bg-gray-100"
-                        value={selectedItem[key]}
-                        disabled
-                      />
-                    ) : key === 'spicinessLevel' ||
-                      key === 'sweetnessLevel' ||
-                      key === 'healthinessScore' ? (
-                      // Use a slider from 0 to 5
-                      <div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="5"
-                          value={selectedItem[key] as number}
-                          onChange={e => handleFieldEdit(selectedItem.id, key, e.target.value)}
-                          className="w-full cursor-pointer"
-                        />
-                        <span className="text-sm text-gray-700">
-                          {selectedItem[key]}
-                        </span>
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        className="w-full p-2 border rounded"
-                        value={selectedItem[key] as string | number}
-                        onChange={e => handleFieldEdit(selectedItem.id, key, e.target.value)}
-                      />
                     )}
                   </div>
                 ))}
               </div>
-
-              {/* (B) Customisations: each category has min/max, plus multiple items (name, price) */}
-              <div className="mt-8">
-                <h3 className="text-lg font-semibold mb-2">Customisations</h3>
-                {(() => {
-                  const found = customisations.find(c => c.id === selectedItem.id);
-                  const categories = found ? found.customisation.categories : [];
-
-                  if (categories.length === 0) {
-                    return <p className="text-gray-500">No customisations yet.</p>;
-                  }
-
-                  return categories.map((cat, catIndex) => (
-                    <div key={catIndex} className="border p-4 mb-4 rounded shadow-sm">
-                      {/* Category header with name, min, max, remove */}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3 space-y-2 sm:space-y-0">
-                        <div className="flex-1 flex items-center space-x-2">
-                          <label className="font-medium">Category Name</label>
-                          <input
-                            type="text"
-                            className="border rounded px-2 py-1 w-44"
-                            placeholder="e.g. Toppings"
-                            value={cat.categoryName}
-                            onChange={e =>
-                              handleCategoryFieldChange(selectedItem.id, catIndex, 'categoryName', e.target.value)
-                            }
-                          />
-                        </div>
-                        <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-                          <label>Min Qty</label>
-                          <input
-                            type="text"
-                            className="border rounded px-2 py-1 w-16"
-                            value={cat.minQuantity}
-                            onChange={e =>
-                              handleCategoryFieldChange(selectedItem.id, catIndex, 'minQuantity', e.target.value)
-                            }
-                          />
-                          <label>Max Qty</label>
-                          <input
-                            type="text"
-                            className="border rounded px-2 py-1 w-16"
-                            value={cat.maxQuantity}
-                            onChange={e =>
-                              handleCategoryFieldChange(selectedItem.id, catIndex, 'maxQuantity', e.target.value)
-                            }
-                          />
-                          <button
-                            onClick={() => removeCategory(selectedItem.id, catIndex)}
-                            className="text-red-500 hover:text-red-700 flex items-center transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Table for Items (Name, Price) */}
-                      <table className="w-full border text-sm">
-                        <thead className="bg-gray-100">
-                          <tr>
-                            <th className="p-2 border">Name</th>
-                            <th className="p-2 border">Price</th>
-                            <th className="p-2 border">Remove</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {cat.items.map((itm, itmIndex) => (
-                            <tr key={itmIndex} className="border-b">
-                              <td className="p-2 border">
-                                <input
-                                  type="text"
-                                  className="w-full border rounded px-1 py-1"
-                                  value={itm.name}
-                                  onChange={e =>
-                                    editItemField(
-                                      selectedItem.id,
-                                      catIndex,
-                                      itmIndex,
-                                      'name',
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td className="p-2 border">
-                                <input
-                                  type="text"
-                                  className="w-20 border rounded px-1 py-1"
-                                  value={itm.price}
-                                  onChange={e =>
-                                    editItemField(
-                                      selectedItem.id,
-                                      catIndex,
-                                      itmIndex,
-                                      'price',
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td className="p-2 border text-center">
-                                <button
-                                  onClick={() => removeItem(selectedItem.id, catIndex, itmIndex)}
-                                  className="text-red-500 hover:text-red-700 transition-colors"
-                                >
-                                  Remove
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-
-                      {/* Add item button */}
+            )}
+  
+            <button
+              onClick={() => addNewRow()}
+              className="w-full p-4 text-[#f15927] hover:bg-orange-50 flex items-center justify-center transition-colors mt-4"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add New Item
+            </button>
+          </div>
+        </div>
+  
+        {/* Main Content Area - Enhanced */}
+        {selectedItem ? (
+          <div className={`flex-1 overflow-y-auto bg-gray-50 ${confirmDeleteItemId ? 'blur-sm' : ''}`}>
+            <div className="max-w-4xl mx-auto py-6">
+              <div className="bg-white rounded-xl shadow-sm">
+                {/* Header */}
+                <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">Edit Item</h2>
+                    <p className="text-sm text-gray-500 mt-1">ID: {selectedItem.id}</p>
+                  </div>
+                  <div className="flex space-x-4">
+                    <button
+                      onClick={() => handleDeleteIconClick(selectedItem.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    {hasChanges && (
                       <button
-                        onClick={() => addNewItem(selectedItem.id, catIndex)}
-                        className="mt-2 text-blue-600 hover:underline text-sm"
+                        onClick={handleSaveChanges}
+                        className="px-4 py-2 bg-[#f15927] text-white rounded-lg hover:bg-[#e54816] flex items-center transition-colors"
                       >
-                        + Add Item
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Changes
+                      </button>
+                    )}
+                  </div>
+                </div>
+  
+                {/* Form Fields */}
+                <div className="p-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    {orderedColumns.map(key => (
+                      <div key={key} className={key === 'description' ? 'col-span-2' : ''}>
+                        <label className="block mb-2 text-sm font-medium text-gray-700 capitalize">
+                          {key}
+                        </label>
+                        
+                        {/* Enhanced form controls */}
+                        {key === 'image' ? (
+                          <div className="space-y-2">
+                            <ImageUploader
+                              currentImage={selectedItem.image}
+                              onImageUpdate={(newUrl) => handleFieldEdit(selectedItem.id, 'image', newUrl)}
+                              restaurantId={restaurantId}
+                              itemId={selectedItem.id}
+                            />
+                          </div>
+                        ) : key === 'available' ? (
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="sr-only peer"
+                              checked={selectedItem[key] || false}
+                              onChange={e => handleFieldEdit(selectedItem.id, key, e.target.checked)}
+                            />
+                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:bg-[#f15927] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                          </label>
+                        ) : key === 'caffeineLevel' ? (
+                          <select
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
+                            value={selectedItem[key] || 'none'}
+                            onChange={e => handleFieldEdit(selectedItem.id, key, e.target.value)}
+                          >
+                            <option value="none">None</option>
+                            <option value="medium">Medium</option>
+                            <option value="high">High</option>
+                          </select>
+                        ) : key === 'dietaryPreference' ? (
+                          <select
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
+                            multiple
+                            value={Array.isArray(selectedItem[key]) ? selectedItem[key] : []}
+                            onChange={e => {
+                              const selectedOptions = Array.from(e.target.selectedOptions).map(opt => opt.value);
+                              handleFieldEdit(selectedItem.id, key, selectedOptions);
+                            }}
+                          >
+                            <option value="veg">Vegetarian</option>
+                            <option value="vegan">Vegan</option>
+                            <option value="non-veg">Non-Vegetarian</option>
+                          </select>
+                        ) : (
+                          <input
+                            type={key === 'price' ? 'number' : 'text'}
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent transition-colors"
+                            value={selectedItem[key]}
+                            onChange={e => handleFieldEdit(selectedItem.id, key, e.target.value)}
+                            disabled={key === 'id'}
+                          />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+  
+                  {/* Customizations Section */}
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Customizations</h3>
+                    <div className="space-y-4">
+                      {customisations
+                        .find(c => c.id === selectedItem.id)
+                        ?.customisation.categories.map((category, index) => (
+                          <div key={index} className="bg-white p-6 rounded-lg border border-gray-200">
+                            <div className="flex justify-between items-center mb-4">
+                              <input
+                                type="text"
+                                className="text-lg font-medium bg-transparent border-b border-gray-300 focus:border-[#f15927] px-2 py-1"
+                                value={category.categoryName}
+                                onChange={e => handleCategoryFieldChange(selectedItem.id, index, 'categoryName', e.target.value)}
+                              />
+                              <button
+                                onClick={() => removeCategory(selectedItem.id, index)}
+                                className="text-gray-400 hover:text-red-600 p-2 rounded-lg hover:bg-red-50 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                            
+                            {/* Category items table */}
+                            <table className="w-full">
+                              <thead>
+                                <tr>
+                                  <th className="text-left pb-2 text-gray-600">Name</th>
+                                  <th className="text-left pb-2 text-gray-600">Price</th>
+                                  <th className="text-right pb-2 text-gray-600">Actions</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {category.items.map((item, itemIndex) => (
+                                  <tr key={itemIndex}>
+                                    <td className="py-2">
+                                      <input
+                                        type="text"
+                                        className="w-full p-2 border border-gray-300 rounded-lg"
+                                        value={item.name}
+                                        onChange={e => editItemField(selectedItem.id, index, itemIndex, 'name', e.target.value)}
+                                      />
+                                    </td>
+                                    <td className="py-2">
+                                      <input
+                                        type="number"
+                                        className="w-24 p-2 border border-gray-300 rounded-lg"
+                                        value={item.price}
+                                        onChange={e => editItemField(selectedItem.id, index, itemIndex, 'price', e.target.value)}
+                                      />
+                                    </td>
+                                    <td className="py-2 text-right">
+                                      <button
+                                        onClick={() => removeItem(selectedItem.id, index, itemIndex)}
+                                        className="text-red-600 hover:text-red-700"
+                                      >
+                                        Remove
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                            
+                            <button
+                              onClick={() => addNewItem(selectedItem.id, index)}
+                              className="mt-4 text-[#f15927] hover:text-[#e54816] flex items-center"
+                            >
+                              <Plus className="w-4 h-4 mr-1" />
+                              Add Item
+                            </button>
+                          </div>
+                      ))}
+                      
+                      <button
+                        onClick={() => addNewCategory(selectedItem.id)}
+                        className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-[#f15927] hover:text-[#f15927] transition-colors"
+                      >
+                        <Plus className="w-4 h-4 mx-auto mb-2" />
+                        Add New Category
                       </button>
                     </div>
-                  ));
-                })()}
-
-                {/* Add new Category */}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center bg-gray-50">
+            <div className="text-center">
+              <div className="text-gray-400 mb-4">
+                <ChevronRight className="w-12 h-12 mx-auto" />
+              </div>
+              <p className="text-gray-500">Select an item to edit or add a new item</p>
+            </div>
+          </div>
+        )}
+  
+        {/* Delete Confirmation Modal */}
+        {confirmDeleteItemId && (
+          <div className="fixed inset-0 flex items-center justify-center z-50">
+            <div className="absolute inset-0 bg-black opacity-50"></div>
+            <div className="relative bg-white rounded-xl shadow-lg p-6 w-[400px] max-w-lg mx-4">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Confirm Deletion</h2>
+              <p className="text-gray-600 mb-6">Are you sure you want to delete this item? This action cannot be undone.</p>
+              <div className="flex justify-end space-x-4">
                 <button
-                  onClick={() => addNewCategory(selectedItem.id)}
-                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                  onClick={() => setConfirmDeleteItemId(null)}
                 >
-                  + Add Category
+                  Cancel
+                </button>
+                <button
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                  onClick={confirmDeleteItem}
+                >
+                  Delete
                 </button>
               </div>
             </div>
           </div>
-        </div>
-      ) : (
-        <div
-          className={`flex-1 p-6 flex items-center justify-center text-gray-500 ${
-            confirmDeleteItemId ? 'blur-sm' : ''
-          }`}
-        >
-          Select an item to edit or add a new item
-        </div>
-      )}
-
-      {/* Confirmation Modal (only if confirmDeleteItemId != null) */}
-      {confirmDeleteItemId != null && (
-        <div className="fixed inset-0 flex items-center justify-center z-50">
-          {/* Dark overlay */}
-          <div className="absolute inset-0 bg-black opacity-50"></div>
-
-          {/* Modal content */}
-          <div className="relative bg-white rounded-lg shadow-lg p-6 w-[300px]">
-            <h2 className="text-xl font-semibold mb-4">Are you sure?</h2>
-            <p className="mb-6">Do you really want to delete this item permanently?</p>
-            <div className="flex justify-end space-x-4">
-              <button
-                className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400 transition-colors"
-                onClick={cancelDeleteItem}
-              >
-                No
-              </button>
-              <button
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-                onClick={confirmDeleteItem}
-              >
-                Yes, Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default MenuManagement;
+        )}
+      </div>
+    );
+  };
+  
+  export default MenuManagement;

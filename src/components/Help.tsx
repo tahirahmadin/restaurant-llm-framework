@@ -149,8 +149,6 @@ export function Help() {
   };
 
   return (
-    <div className="p-6">
-      <div className="relative min-h-screen bg-white ml-64">
         <MenuManagement
           restaurantId={restaurantDetails.restaurantId}
           restaurantName={restaurantDetails.name}
@@ -159,7 +157,5 @@ export function Help() {
           onClose={() => setShowMenuManagement(false)}
           onUpdate={handleMenuUpdate}
         />
-      </div>
-    </div>
   );
 }
