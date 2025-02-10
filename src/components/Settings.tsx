@@ -434,6 +434,57 @@ export function Settings({
                 )}
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Restaurant Description *
+                </label>
+                <div className="relative">
+                  <textarea
+                    required
+                    value={restaurantDetails.description || ''}
+                    onChange={(e) => {
+                      const words = e.target.value.trim().split(/\s+/); 
+                      if (words.length > 8) {
+                        setErrors((prev) => ({
+                          ...prev,
+                          description: 'Keep it within 5-8 words.',
+                        }));
+                      } else {
+                        setErrors((prev) => ({ ...prev, description: '' }));
+                        setRestaurantDetails((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }));
+                      }
+                    }}
+                    className={`w-full rounded-lg border ${
+                      errors.description ? 'border-red-500' : 'border-gray-300'
+                    } px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c]`}
+                    placeholder="Describe your restaurant..."
+                    rows={3}
+                  />
+                </div>
+                {errors.description && (
+                  <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Restaurant Image
+                </label>
+                <ImageUploader
+                  currentImage={restaurantDetails.image || ''}
+                  onImageUpdate={(newUrl) =>
+                    setRestaurantDetails((prev) => ({
+                      ...prev,
+                      image: newUrl,
+                    }))
+                  }
+                  restaurantId={Number(restaurantDetails.restaurantId || 0)}
+                />
+              </div>
+
               {/* Contact Number */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
