@@ -27,7 +27,6 @@ interface RestaurantDetails {
     longitude: number;
   };
   isOnline?: boolean;
-  menuSummary: string;
   menu?: {
     File?: File | null;
     extractedText?: string;
@@ -207,10 +206,6 @@ export function Settings({
           newErrors.address = "Address is required";
         }
 
-        if (!restaurantDetails.menuSummary?.trim()) {
-          newErrors.menuSummary = "Please provide a summary of your menu items";
-        }
-
         if (!restaurantDetails.location) {
           newErrors.location = "Please capture your location";
         }
@@ -278,7 +273,6 @@ export function Settings({
           contactNo: restaurantDetails.contactNo,
           address: restaurantDetails.address,
           location: restaurantDetails.location,
-          menuSummary: restaurantDetails.menuSummary,
           isOnline: restaurantDetails.isOnline ?? false,
         };
 
@@ -316,6 +310,7 @@ export function Settings({
             restaurantId: data.data.restaurantId,
             menuUploaded: data.data.menuUploaded,
           }));
+          handleNextStep();
         }
 
         toast.success("Restaurant saved successfully!");
@@ -441,16 +436,16 @@ export function Settings({
                 <div className="relative">
                   <textarea
                     required
-                    value={restaurantDetails.description || ''}
+                    value={restaurantDetails.description || ""}
                     onChange={(e) => {
-                      const words = e.target.value.trim().split(/\s+/); 
+                      const words = e.target.value.trim().split(/\s+/);
                       if (words.length > 8) {
                         setErrors((prev) => ({
                           ...prev,
-                          description: 'Keep it within 5-8 words.',
+                          description: "Keep it within 5-8 words.",
                         }));
                       } else {
-                        setErrors((prev) => ({ ...prev, description: '' }));
+                        setErrors((prev) => ({ ...prev, description: "" }));
                         setRestaurantDetails((prev) => ({
                           ...prev,
                           description: e.target.value,
@@ -458,14 +453,16 @@ export function Settings({
                       }
                     }}
                     className={`w-full rounded-lg border ${
-                      errors.description ? 'border-red-500' : 'border-gray-300'
-                    } px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c]`}
-                    placeholder="Describe your restaurant..."
-                    rows={3}
+                      errors.description ? "border-red-500" : "border-gray-300"
+                    } px-4 py-1 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c]`}
+                    placeholder="One line about your restaurant..."
+                    rows={2}
                   />
                 </div>
                 {errors.description && (
-                  <p className="mt-1 text-sm text-red-500">{errors.description}</p>
+                  <p className="mt-1 text-sm text-red-500">
+                    {errors.description}
+                  </p>
                 )}
               </div>
 
@@ -474,7 +471,7 @@ export function Settings({
                   Restaurant Image
                 </label>
                 <ImageUploader
-                  currentImage={restaurantDetails.image || ''}
+                  currentImage={restaurantDetails.image || ""}
                   onImageUpdate={(newUrl) =>
                     setRestaurantDetails((prev) => ({
                       ...prev,
@@ -549,7 +546,7 @@ export function Settings({
                       errors.address ? "border-red-500" : "border-gray-300"
                     } px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c]`}
                     placeholder="Enter restaurant address"
-                    rows={3}
+                    rows={2}
                   />
                 </div>
                 {errors.address && (
@@ -558,33 +555,6 @@ export function Settings({
               </div>
 
               {/* Menu Summary */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Summary of Menu Items *
-                </label>
-                <div className="relative">
-                  <textarea
-                    required
-                    value={restaurantDetails.menuSummary || ""}
-                    onChange={(e) =>
-                      setRestaurantDetails((prev) => ({
-                        ...prev,
-                        menuSummary: e.target.value,
-                      }))
-                    }
-                    className={`pl-3 w-full rounded-lg border ${
-                      errors.menuSummary ? "border-red-500" : "border-gray-300"
-                    } px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c]`}
-                    placeholder="Briefly describe your menu..."
-                    rows={3}
-                  />
-                </div>
-                {errors.menuSummary && (
-                  <p className="mt-1 text-sm text-red-500">
-                    {errors.menuSummary}
-                  </p>
-                )}
-              </div>
 
               {/* Location */}
               <div>
@@ -613,20 +583,20 @@ export function Settings({
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-between mt-6 space-x-4">
-              <button
+            <div className="flex justify-center mt-6 space-x-4">
+              {/* <button
                 type="button"
                 onClick={handleSaveDetails}
                 className="px-4 py-2 bg-[#ff6b2c] text-white rounded-lg hover:bg-[#e85a1f]"
               >
                 Save
-              </button>
+              </button> */}
               <button
                 type="button"
-                onClick={handleNextStep}
+                onClick={handleSaveDetails}
                 className="px-4 py-2 bg-[#ff6b2c] text-white rounded-lg hover:bg-[#e85a1f]"
               >
-                Next
+                Save & Next
               </button>
             </div>
           </div>

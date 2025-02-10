@@ -68,7 +68,7 @@ export function LeftBar({
             {isExpanded ? (
               <>
                 <span className="text-2xl">🍽️</span>
-                <span>FOODIE HUB</span>
+                <span>gobbl</span>
               </>
             ) : (
               "🍽️"

@@ -11,24 +11,37 @@ export interface OrderItem {
   image: string;
 }
 
-export interface Order {
-  id: string;
-  table: string;
+interface Order {
+  _id: string;
+  orderId: string;
   items: OrderItem[];
-  status: "fresh" | "cooking" | "completed";
-  time: string;
-  estimatedMinutes?: number;
-  total: number;
+  status: "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED";
+  createdAt: string;
+  updatedAt: string;
+  totalAmount: number;
+  restaurantName: string;
+  user: string;
+  paymentId: string;
+  paymentStatus: string;
+  paymentMethod: string;
+  customerDetails: CustomerDetails;
+}
+
+interface CustomerDetails {
+  name: string;
+  phone: string;
+  address: string;
+  email?: string;
 }
 
 export const fetchRestaurantOrders = async (
-  restaurantName: string
+  restaurantId: string
 ): Promise<Order[]> => {
   try {
     const response = await axios.get(
       `${apiUrl}/restaurant/getRestaurantOrders`,
       {
-        params: { restaurantName },
+        params: { restaurantId },
       }
     );
 
@@ -45,19 +58,26 @@ export const fetchRestaurantOrders = async (
 
 export const updateOrderStatus = async (
   orderId: string,
-  status: "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
-): Promise<void> => {
+  status: "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED",
+  estimatedDeliveryTime: number
+): Promise<Order[] | null> => {
   try {
-    const response = await axios.put(`${apiUrl}/restaurant/updateOrderStatus`, {
-      orderId,
-      status,
-    });
+    const response = await axios.post(
+      `${apiUrl}/restaurant/updateOrderStatus`,
+      {
+        orderId,
+        status,
+        estimatedDeliveryTime,
+      }
+    );
 
-    if (!response.data.success) {
-      throw new Error(response.data.error || "Failed to update order status");
+    if (!response.data.error) {
+      return response.data.result;
+    } else {
+      return null;
     }
   } catch (error) {
     console.error("Error updating order status:", error);
-    throw error;
+    return null;
   }
 };

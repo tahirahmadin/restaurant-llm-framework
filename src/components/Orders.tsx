@@ -51,7 +51,7 @@ export function Orders() {
   useEffect(() => {
     const loadOrders = async () => {
       try {
-        const fetchedOrders = await fetchRestaurantOrders("1");
+        const fetchedOrders = await fetchRestaurantOrders("6");
         console.log(fetchedOrders);
         setOrders(fetchedOrders);
       } catch (error) {
@@ -65,49 +65,34 @@ export function Orders() {
 
   const handleUpdateStatus = (order: Order, newStatus: string) => {
     try {
-      // First update the UI optimistically
-      updateOrderStatus(
-        order._id,
-        newStatus as "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
-      );
-
       // Then make the API call
       updateOrderStatusAPI(
-        order._id,
-        newStatus as "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
+        order.orderId,
+        newStatus as
+          | "PROCESSING"
+          | "COOKING"
+          | "OUT_FOR_DELIVERY"
+          | "COMPLETED",
+        estimatedMinutes
       )
-        .then(() => {
-          toast.success(
-            `Order ${order.orderId.slice(
-              30,
-              40
-            )} status updated to ${newStatus}`
-          );
+        .then((res) => {
+          if (res) {
+            console.log(res);
+            setOrders(res);
+            toast.success(
+              `Order ${order.orderId.slice(
+                30,
+                40
+              )} status updated to ${newStatus}`
+            );
+          }
         })
         .catch((error) => {
-          // Revert the UI state on error
-          const previousStatus = order.status;
-          updateOrderStatus(order._id, previousStatus);
           toast.error("Failed to update order status");
-          console.error("Error updating order status:", error);
         });
     } catch (error) {
       toast.error("Failed to update order status");
       console.error("Error updating order status:", error);
-    }
-  };
-
-  const handleUpdateDeliveryTime = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedOrder) {
-      try {
-        updateEstimatedTime(selectedOrder._id, estimatedMinutes);
-        toast.success(`Delivery time updated for order ${selectedOrder._id}`);
-        setEstimatedMinutes(15); // Reset to default
-      } catch (error) {
-        toast.error("Failed to update delivery time");
-        console.error("Error updating delivery time:", error);
-      }
     }
   };
 
@@ -121,19 +106,6 @@ export function Orders() {
       <div className="w-1/2 p-6 border-r">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold">Orders</h1>
-          <div className="flex gap-2">
-            <button className="p-2 hover:bg-gray-100 rounded-lg">
-              <Filter className="w-5 h-5 text-gray-600" />
-            </button>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                placeholder="Search orders..."
-                className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 w-64 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
-              />
-            </div>
-          </div>
         </div>
 
         {/* Status Tabs */}
@@ -314,7 +286,7 @@ export function Orders() {
             {/* Order Summary */}
             <div className="bg-white p-4 rounded-xl border border-gray-200">
               {selectedOrder.status === "COOKING" && (
-                <form onSubmit={handleUpdateDeliveryTime} className="mb-4">
+                <form className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Estimated Delivery Time (minutes)
                   </label>

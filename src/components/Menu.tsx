@@ -325,7 +325,7 @@ export function Menu() {
           </div>
 
           {/* Menu Grid */}
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-4 gap-6">
             {menuItems.map((item) => (
               <div
                 key={item.id}
