@@ -9,7 +9,10 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeft,
+  Power
 } from "lucide-react";
+import { toast } from "sonner";
+import { API_URL } from "../config";
 
 interface LeftBarProps {
   isExpanded: boolean;
@@ -32,14 +35,19 @@ interface LeftBarProps {
       | "help"
       | "settings"
   ) => void;
+  restaurantId?: number;
+  isOnline?: boolean;
+  setRestaurantDetails?: (details: any) => void;
 }
 
 export function LeftBar({
   isExpanded,
   setIsExpanded,
-  // NEW PROPS
   activeTab,
   setActiveTab,
+  restaurantId,
+  isOnline = false,
+  setRestaurantDetails,
 }: LeftBarProps) {
   const navItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -50,6 +58,47 @@ export function LeftBar({
     { id: "help", label: "PMenu", icon: HelpCircle },
     { id: "settings", label: "Settings", icon: Settings },
   ];
+
+  const toggleOnlineStatus = async () => {
+    if (!restaurantId) {
+      toast.error("Restaurant ID not found");
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/restaurant/updateRestaurant/${restaurantId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            isOnline: !isOnline,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to update restaurant status");
+      }
+
+      const data = await response.json();
+      
+      if (data.error === false && setRestaurantDetails) {
+        setRestaurantDetails((prev: any) => ({
+          ...prev,
+          isOnline: !isOnline,
+        }));
+        toast.success(`Restaurant is now ${!isOnline ? "online" : "offline"}`);
+      } else {
+        throw new Error(data.error || "Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating restaurant status:", error);
+      toast.error("Failed to update restaurant status");
+    }
+  };
 
   return (
     <>
@@ -74,6 +123,23 @@ export function LeftBar({
               "🍽️"
             )}
           </h1>
+        </div>
+
+        {/* Online/Offline Toggle */}
+        <div className="p-4 border-b border-gray-200">
+          <button
+            onClick={toggleOnlineStatus}
+            className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
+              isOnline
+                ? "bg-green-100 text-green-700"
+                : "bg-gray-100 text-gray-700"
+            }`}
+          >
+            <Power className={`w-5 h-5 ${isExpanded ? "mr-3" : ""}`} />
+            {isExpanded && (
+              <span>{isOnline ? "Restaurant Online" : "Restaurant Offline"}</span>
+            )}
+          </button>
         </div>
 
         {/* Navigation Items */}

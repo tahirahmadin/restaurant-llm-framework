@@ -295,54 +295,91 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
         finalResult = [...enhancedFirstBatch, ...enhancedSecondBatch];
       }
     
-      // Add these debug logs
-      console.log('About to save menu with:', {
-        restaurantId,
-        menuItemsCount: finalResult.length,
-        firstItem: finalResult[0],
-      });
-    
-      // Make API call with detailed error handling
-      try {
-        const apiPayload = {
+      // Generate menu summary
+    setProcessingStep("Generating menu summary...");
+    const menuSummary = await generateMenuSummary(finalResult);
+
+    // First update the menu items
+    try {
+      const menuUpdateResponse = await fetch(`${API_URL}/api/restaurant/updateMenu/${restaurantId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
           menuItems: finalResult,
           customisations: []
-        };
-    
-        console.log('Sending to API:', {
-          url: `${API_URL}/api/restaurant/updateMenu/${restaurantId}`,
-          payload: JSON.stringify(apiPayload, null, 2)
-        });
-    
-        const response = await fetch(`${API_URL}/api/restaurant/updateMenu/${restaurantId}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(apiPayload)
-        });
-    
-        const responseData = await response.json();
-        console.log('API Response:', responseData);
-    
-        if (!response.ok) {
-          throw new Error(`Server error: ${responseData.error || 'Unknown error'}`);
-        }
-    
-        // Log successful save
-        console.log('Menu saved successfully:', responseData);
-        toast.success('Menu saved to database successfully!');
-      } catch (error) {
-        console.error('Error saving to database:', error);
-        toast.error(`Failed to save menu: ${error.message}`);
-        throw error;
+        })
+      });
+
+      if (!menuUpdateResponse.ok) {
+        throw new Error('Failed to update menu items');
       }
-    
-      onMenuProcessed(finalResult);
-      return finalResult;
+
+      // Then update the restaurant with the menu summary
+      const restaurantUpdateResponse = await fetch(`${API_URL}/api/restaurant/updateRestaurant/${restaurantId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          menuSummary: menuSummary
+        })
+      });
+
+      if (!restaurantUpdateResponse.ok) {
+        throw new Error('Failed to update menu summary');
+      }
+
+      toast.success('Menu and summary updated successfully!');
     } catch (error) {
-      console.error("Enhancement process failed:", error);
-      throw new Error(`Failed to enhance JSON with additional fields: ${error.message}`);
+      console.error('Error updating menu and summary:', error);
+      toast.error('Failed to update menu and summary');
+      throw error;
+    }
+
+    onMenuProcessed(finalResult);
+    return finalResult;
+  } catch (error) {
+    console.error("Enhancement process failed:", error);
+    throw new Error(`Failed to enhance JSON with additional fields: ${error.message}`);
+  }
+};
+
+  const generateMenuSummary = async (menuItems: any[]) => {
+    try {
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${OPENAI_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-4o",
+          messages: [
+            {
+              role: "system",
+              content: `You are a restaurant menu summarizer. Create a concise 30-word summary highlighting the key offerings, cuisines, and special features of the menu. Focus on variety, specialties, and unique aspects.`
+            },
+            {
+              role: "user",
+              content: `Create a 30-word summary for this menu: ${JSON.stringify(menuItems)}`
+            }
+          ],
+          max_tokens: 100,
+          temperature: 0.6
+        }),
+      });
+  
+      const data = await response.json();
+      if (!data.choices?.[0]?.message?.content) {
+        throw new Error('Failed to generate menu summary');
+      }
+  
+      return data.choices[0].message.content.trim();
+    } catch (error) {
+      console.error('Error generating menu summary:', error);
+      throw error;
     }
   };
 

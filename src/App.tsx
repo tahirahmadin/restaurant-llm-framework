@@ -172,6 +172,9 @@ function App() {
         setIsExpanded={setIsExpanded}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        restaurantId={restaurantDetails.restaurantId}  
+        isOnline={restaurantDetails.isOnline}         
+        setRestaurantDetails={setRestaurantDetails}
       />
       <div className="flex-1 flex flex-col">
         {activeTab === "overview" && <Overview />}
