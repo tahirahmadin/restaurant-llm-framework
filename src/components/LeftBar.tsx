@@ -9,7 +9,7 @@ import {
   LogOut,
   PanelLeftClose,
   PanelLeft,
-  Power
+  Power,
 } from "lucide-react";
 import { toast } from "sonner";
 import { updateRestaurantOnlineStatus } from "../actions/serverActions";
@@ -27,14 +27,7 @@ interface LeftBarProps {
     | "help"
     | "settings";
   setActiveTab: (
-    tab:
-      
-      | "orders"
-      | "menu"
-      | "profile"
-      | "payments"
-      | "help"
-      | "settings"
+    tab: "orders" | "menu" | "profile" | "payments" | "help" | "settings"
   ) => void;
   restaurantId?: number;
   isOnline?: boolean;
@@ -63,25 +56,31 @@ export function LeftBar({
   ];
 
   const toggleOnlineStatus = async () => {
-    if (!restaurantId) {
+    console.log(restaurantId);
+    if (!user?.restaurantId) {
       toast.error("Restaurant ID not found");
       return;
     }
-    
+
     if (!user?.username) {
       toast.error("User not authenticated");
       return;
     }
 
     try {
-      const result = await updateRestaurantOnlineStatus(restaurantId.toString(), user.username);
-      
+      const result = await updateRestaurantOnlineStatus(
+        user.restaurantId,
+        user.username
+      );
+
       if (setRestaurantDetails) {
         setRestaurantDetails((prev: any) => ({
           ...prev,
           isOnline: result.isOnline,
         }));
-        toast.success(`Restaurant is now ${result.isOnline ? "online" : "offline"}`);
+        toast.success(
+          `Restaurant is now ${result.isOnline ? "online" : "offline"}`
+        );
       }
     } catch (error) {
       console.error("Error updating restaurant status:", error);
@@ -126,7 +125,9 @@ export function LeftBar({
           >
             <Power className={`w-5 h-5 ${isExpanded ? "mr-3" : ""}`} />
             {isExpanded && (
-              <span>{isOnline ? "Restaurant Online" : "Restaurant Offline"}</span>
+              <span>
+                {isOnline ? "Restaurant Online" : "Restaurant Offline"}
+              </span>
             )}
           </button>
         </div>
@@ -160,7 +161,7 @@ export function LeftBar({
             className="w-full flex items-center px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
             onClick={() => {
               logout();
-              toast.success('Logged out successfully');
+              toast.success("Logged out successfully");
             }}
           >
             <LogOut className={`w-5 h-5 ${isExpanded ? "mr-3" : ""}`} />
