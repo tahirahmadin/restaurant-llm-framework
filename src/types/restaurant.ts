@@ -12,6 +12,7 @@ export interface RestaurantProfile {
   };
   isOnline: boolean;
   menuUploaded: boolean;
+  paymentsEnabled: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -28,4 +29,5 @@ export interface RestaurantUpdateData {
   };
   isOnline?: boolean;
   menuUploaded?: boolean;
+  paymentsEnabled?: boolean;
 }
