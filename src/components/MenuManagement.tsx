@@ -775,6 +775,26 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                                 )
                               }
                             />
+                            </div>
+                        <div className="flex items-center space-x-2 mt-2 sm:mt-0">
+                          <label>Min Qty</label>
+                          <input
+                            type="text"
+                            className="border rounded px-2 py-1 w-16"
+                            value={category.minQuantity}
+                            onChange={e =>
+                              handleCategoryFieldChange(selectedItem.id, index, "minQuantity", e.target.value)
+                            }
+                          />
+                          <label>Max Qty</label>
+                          <input
+                            type="text"
+                            className="border rounded px-2 py-1 w-16"
+                            value={category.maxQuantity}
+                            onChange={e =>
+                              handleCategoryFieldChange(selectedItem.id, index, "maxQuantity", e.target.value)
+                            }
+                          />
                             <button
                               onClick={() =>
                                 removeCategory(selectedItem.id, index)
