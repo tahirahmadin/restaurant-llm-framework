@@ -85,31 +85,30 @@ export const updateOrderStatus = async (
   }
 };
 
-export const createRestaurant = async (signupData: SignupData): Promise<{ 
+export const createRestaurant = async (
+  signupData: SignupData
+): Promise<{
   userId: string;
   username: string;
   restaurantId: string;
 }> => {
   try {
-    const response = await axios.post(
-      `${apiUrl}/restaurant/createRestaurant`,
-      {
-        name: signupData.restaurantDetails.name,
-        description: signupData.restaurantDetails.description,
-        image: signupData.restaurantDetails.image,
-        contactNo: signupData.restaurantDetails.contactNo,
-        address: signupData.restaurantDetails.address,
-        location: signupData.restaurantDetails.location,
-        superadminUsername: signupData.username,
-        superadminPassword: signupData.password
-      }
-    );
+    const response = await axios.post(`${apiUrl}/restaurant/createRestaurant`, {
+      name: signupData.restaurantDetails.name,
+      description: signupData.restaurantDetails.description,
+      image: signupData.restaurantDetails.image,
+      contactNo: signupData.restaurantDetails.contactNo,
+      address: signupData.restaurantDetails.address,
+      location: signupData.restaurantDetails.location,
+      superadminUsername: signupData.username,
+      superadminPassword: signupData.password,
+    });
 
     if (response.data && !response.data.error) {
       return {
         userId: response.data.result.userId,
         username: response.data.result.username,
-        restaurantId: response.data.result.restaurantId
+        restaurantId: response.data.result.restaurantId,
       };
     }
 
@@ -120,7 +119,9 @@ export const createRestaurant = async (signupData: SignupData): Promise<{
   }
 };
 
-export const authenticateAdmin = async (loginData: LoginData): Promise<{
+export const authenticateAdmin = async (
+  loginData: LoginData
+): Promise<{
   userId: string;
   username: string;
 }> => {
@@ -129,14 +130,14 @@ export const authenticateAdmin = async (loginData: LoginData): Promise<{
       `${apiUrl}/restaurant/authenticateAdmin`,
       {
         username: loginData.username,
-        password: loginData.password
+        password: loginData.password,
       }
     );
 
     if (response.data && !response.data.error) {
       return {
         username: response.data.result.username,
-        restaurantId: response.data.result.restaurantId
+        restaurantId: response.data.result.restaurantId,
       };
     }
 
@@ -147,7 +148,9 @@ export const authenticateAdmin = async (loginData: LoginData): Promise<{
   }
 };
 
-export const getRestaurantProfile = async (restaurantId: string | number): Promise<RestaurantProfile> => {
+export const getRestaurantProfile = async (
+  restaurantId: string | number
+): Promise<RestaurantProfile> => {
   try {
     const response = await axios.get(
       `${apiUrl}/restaurant/getRestaurant/${restaurantId}`
@@ -157,7 +160,9 @@ export const getRestaurantProfile = async (restaurantId: string | number): Promi
       return response.data.result;
     }
 
-    throw new Error(response.data.error || "Failed to fetch restaurant profile");
+    throw new Error(
+      response.data.error || "Failed to fetch restaurant profile"
+    );
   } catch (error) {
     console.error("Error fetching restaurant profile:", error);
     throw error;
@@ -178,7 +183,9 @@ export const updateRestaurantProfile = async (
       return response.data.result;
     }
 
-    throw new Error(response.data.error || "Failed to update restaurant profile");
+    throw new Error(
+      response.data.error || "Failed to update restaurant profile"
+    );
   } catch (error) {
     console.error("Error updating restaurant profile:", error);
     throw error;
@@ -207,7 +214,9 @@ export const updateMenuItem = async (
   }
 };
 
-export const getRestaurantMenu = async (restaurantId: string | number): Promise<MenuItem[]> => {
+export const getRestaurantMenu = async (
+  restaurantId: string | number
+): Promise<MenuItem[]> => {
   try {
     const response = await axios.get(
       `${apiUrl}/restaurant/getRestaurantMenu/${restaurantId}`
@@ -232,14 +241,14 @@ export const updateRestaurantOnlineStatus = async (
     const response = await axios.post(
       `${apiUrl}/restaurant/updateOnlineStatus`,
       {
-        restaurantId: restaurantId.toString(),
-        adminUsername
+        restaurantId: restaurantId,
+        adminUsername,
       }
     );
 
     if (response.data && !response.data.error) {
       return {
-        isOnline: response.data.result.isOnline
+        isOnline: response.data.result.isOnline,
       };
     }
 
