@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { API_URL } from "../config";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/build/pdf";
 import "pdfjs-dist/build/pdf.worker.entry"; // Ensures worker is loaded correctly
+import useAuthStore from '../store/useAuthStore';
 
 // Set worker source
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js`;
@@ -48,6 +49,8 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
   const [currentStep, setCurrentStep] = useState(1);
   const [processingStep, setProcessingStep] = useState<string>("");
 
+      const { user } = useAuthStore.getState();
+  
   const resetUploadState = () => {
     setIsUploading(false);
     setUploading(false);
@@ -308,6 +311,7 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
         },
         body: JSON.stringify({
           menuItems: finalResult,
+          adminUsername:user.username,
           customisations: []
         })
       });
@@ -323,7 +327,8 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({ FileUpload = { File: null, extr
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          menuSummary: menuSummary
+          menuSummary: menuSummary,
+          adminUsername:user.username,
         })
       });
 

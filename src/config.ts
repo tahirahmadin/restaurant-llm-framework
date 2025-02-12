@@ -1,3 +1,3 @@
 // src/config.ts
 export const API_URL =
-  import.meta.env.VITE_PUBLIC_API_URL || "https://restauranttest.gobbl.ai";
+  import.meta.env.VITE_PUBLIC_API_URL || "https://payments.gobbl.ai";

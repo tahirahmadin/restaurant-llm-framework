@@ -12,7 +12,8 @@ import {
   Power
 } from "lucide-react";
 import { toast } from "sonner";
-import { API_URL } from "../config";
+import { updateRestaurantOnlineStatus } from "../actions/serverActions";
+import useAuthStore from "../store/useAuthStore";
 
 interface LeftBarProps {
   isExpanded: boolean;
@@ -27,7 +28,7 @@ interface LeftBarProps {
     | "settings";
   setActiveTab: (
     tab:
-      | "overview"
+      
       | "orders"
       | "menu"
       | "profile"
@@ -49,13 +50,15 @@ export function LeftBar({
   isOnline = false,
   setRestaurantDetails,
 }: LeftBarProps) {
+  const logout = useAuthStore((state) => state.logout);
+  const { user } = useAuthStore();
+
   const navItems = [
-    { id: "overview", label: "Overview", icon: LayoutDashboard },
     { id: "orders", label: "Orders", icon: ShoppingBag },
     { id: "menu", label: "Menu", icon: MenuIcon },
     { id: "profile", label: "Profile", icon: User },
     { id: "payments", label: "Payments", icon: Wallet },
-    { id: "help", label: "PMenu", icon: HelpCircle },
+    { id: "help", label: "Help", icon: HelpCircle },
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
@@ -64,35 +67,21 @@ export function LeftBar({
       toast.error("Restaurant ID not found");
       return;
     }
+    
+    if (!user?.username) {
+      toast.error("User not authenticated");
+      return;
+    }
 
     try {
-      const response = await fetch(
-        `${API_URL}/api/restaurant/updateRestaurant/${restaurantId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            isOnline: !isOnline,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to update restaurant status");
-      }
-
-      const data = await response.json();
+      const result = await updateRestaurantOnlineStatus(restaurantId.toString(), user.username);
       
-      if (data.error === false && setRestaurantDetails) {
+      if (setRestaurantDetails) {
         setRestaurantDetails((prev: any) => ({
           ...prev,
-          isOnline: !isOnline,
+          isOnline: result.isOnline,
         }));
-        toast.success(`Restaurant is now ${!isOnline ? "online" : "offline"}`);
-      } else {
-        throw new Error(data.error || "Failed to update status");
+        toast.success(`Restaurant is now ${result.isOnline ? "online" : "offline"}`);
       }
     } catch (error) {
       console.error("Error updating restaurant status:", error);
@@ -112,7 +101,7 @@ export function LeftBar({
           <h1
             className={`font-bold text-[#f15927] ${
               isExpanded ? "text-xl" : "text-sm"
-            } flex items-center gap-2`}
+            } flex items-center gap-2 text-red-600`}
           >
             {isExpanded ? (
               <>
@@ -153,7 +142,7 @@ export function LeftBar({
                   onClick={() => setActiveTab(item.id)}
                   className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
                     activeTab === item.id
-                      ? "bg-[#f15927] text-white"
+                      ? "bg-red-600 text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >
@@ -169,7 +158,10 @@ export function LeftBar({
         <div className="p-4 border-t border-gray-200">
           <button
             className="w-full flex items-center px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-            onClick={() => console.log("Logout")}
+            onClick={() => {
+              logout();
+              toast.success('Logged out successfully');
+            }}
           >
             <LogOut className={`w-5 h-5 ${isExpanded ? "mr-3" : ""}`} />
             {isExpanded && <span>Logout</span>}

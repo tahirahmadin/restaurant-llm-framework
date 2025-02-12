@@ -397,282 +397,9 @@ export function Settings({
   return (
     <div className="p-6 lg:p-8 bg-white min-h-screen overflow-auto">
       <div className="max-w-3xl mx-auto bg-white">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-800">
-            {restaurantDetails.restaurantId
-              ? "Update Restaurant"
-              : "Restaurant Setup"}
-          </h1>
-          <button
-            onClick={() => setShowSetup(false)}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+     
+        
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center w-full">
-            <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold ${
-                setupStep >= 1
-                  ? "bg-[#ff6b2c] text-white"
-                  : "bg-gray-200 text-gray-600"
-              }`}
-            >
-              1
-            </div>
-            <div
-              className={`flex-1 h-[2px] mx-3 ${
-                setupStep === 2 ? "bg-[#ff6b2c]" : "bg-gray-200"
-              } transition-all`}
-            />
-            <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold ${
-                setupStep === 2
-                  ? "bg-[#ff6b2c] text-white"
-                  : "bg-gray-200 text-gray-600"
-              }`}
-            >
-              2
-            </div>
-          </div>
-        </div>
-
-        {/* Step 1: Restaurant Details */}
-        {setupStep === 1 && (
-          <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-            <div className="max-w-4xl mx-auto">
-              {/* Section Heading */}
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Restaurant Details
-                </h2>
-                <p className="text-gray-500 text-sm mt-1">
-                  Fill in the information about your restaurant
-                </p>
-              </div>
-
-              <div className="space-y-5">
-                {/* Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Restaurant Name <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      required
-                      value={restaurantDetails.name}
-                      onChange={(e) =>
-                        setRestaurantDetails((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
-                      }
-                      className={`pl-10 w-full rounded-md border ${
-                        errors.name ? "border-red-500" : "border-gray-300"
-                      } px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c] transition-all bg-gray-50 focus:bg-white`}
-                      placeholder="Enter your restaurant name"
-                    />
-                  </div>
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-500 flex items-center">
-                      <span className="mr-1">•</span> {errors.name}
-                    </p>
-                  )}
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Restaurant Description <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    required
-                    value={restaurantDetails.description || ""}
-                    onChange={(e) => {
-                      const words = e.target.value.trim().split(/\s+/);
-                      if (words.length > 8) {
-                        setErrors((prev) => ({
-                          ...prev,
-                          description: "Keep it within 5-8 words.",
-                        }));
-                      } else {
-                        setErrors((prev) => ({ ...prev, description: "" }));
-                        setRestaurantDetails((prev) => ({
-                          ...prev,
-                          description: e.target.value,
-                        }));
-                      }
-                    }}
-                    className={`w-full rounded-md border ${
-                      errors.description ? "border-red-500" : "border-gray-300"
-                    } px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c] transition-all bg-gray-50 focus:bg-white`}
-                    placeholder="Brief description of your restaurant (5-8 words)"
-                    rows={3}
-                  />
-                  {errors.description && (
-                    <p className="mt-1 text-sm text-red-500 flex items-center">
-                      <span className="mr-1">•</span> {errors.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Image Upload */}
-              <div className="py-6 border-t border-gray-200 mt-5">
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Restaurant Image
-                </label>
-                <ImageUploader
-                  currentImage={restaurantDetails.image || ""}
-                  onImageUpdate={(newUrl) =>
-                    setRestaurantDetails((prev) => ({
-                      ...prev,
-                      image: newUrl,
-                    }))
-                  }
-                  restaurantId={Number(restaurantDetails.restaurantId || 0)}
-                  onFileSelect={(file) => setSelectedImage(file)}
-                />
-              </div>
-
-              {/* Contact and Location */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-5">
-                {/* Contact */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Contact Number <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="tel"
-                      required
-                      value={restaurantDetails.contactNo}
-                      onChange={(e) => {
-                        const inputValue = e.target.value;
-                        const formattedValue = inputValue.startsWith("+971")
-                          ? inputValue
-                          : "+971 " + inputValue.replace(/[^0-9]/g, "").slice(3);
-                        const dubaiNumberPattern = /^\+971 (5\d{8}|4\d{7})$/;
-                        setRestaurantDetails((prev) => ({
-                          ...prev,
-                          contactNo: formattedValue,
-                        }));
-                        setErrors((prev) => ({
-                          ...prev,
-                          contactNo: dubaiNumberPattern.test(formattedValue)
-                            ? ""
-                            : "Invalid phone number format",
-                        }));
-                      }}
-                      className={`pl-10 w-full rounded-md border ${
-                        errors.contactNo ? "border-red-500" : "border-gray-300"
-                      } px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c] transition-all bg-gray-50 focus:bg-white`}
-                      placeholder="+971 5XXXXXXXX"
-                    />
-                  </div>
-                  {errors.contactNo && (
-                    <p className="mt-1 text-sm text-red-500 flex items-center">
-                      <span className="mr-1">•</span> {errors.contactNo}
-                    </p>
-                  )}
-                </div>
-
-                {/* Location */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location <span className="text-red-500">*</span>
-                  </label>
-                  <button
-                    type="button"
-                    onClick={captureLocation}
-                    className={`w-full px-4 py-2 text-sm font-medium rounded-md shadow-sm flex items-center justify-center space-x-2 transition-all ${
-                      restaurantDetails.location
-                        ? "bg-green-600 hover:bg-green-700"
-                        : "bg-[#ff6b2c] hover:bg-[#e85a1f]"
-                    } text-white`}
-                  >
-                    <MapPin className="w-4 h-4" />
-                    <span>
-                      {restaurantDetails.location
-                        ? "Location Captured"
-                        : "Get Location"}
-                    </span>
-                  </button>
-                  {restaurantDetails.location && (
-                    <div className="mt-2 flex items-center space-x-2 text-sm text-green-600">
-                      <CheckCircle2 className="w-4 h-4" />
-                      <span>Location has been captured.</span>
-                    </div>
-                  )}
-                  {errors.location && (
-                    <p className="mt-1 text-sm text-red-500 flex items-center">
-                      <span className="mr-1">•</span> {errors.location}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {/* Address */}
-              <div className="mt-5">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Address <span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-4 text-gray-400 w-5 h-5" />
-                  <textarea
-                    required
-                    value={restaurantDetails.address}
-                    onChange={(e) =>
-                      setRestaurantDetails((prev) => ({
-                        ...prev,
-                        address: e.target.value,
-                      }))
-                    }
-                    className={`pl-10 w-full rounded-md border ${
-                      errors.address ? "border-red-500" : "border-gray-300"
-                    } px-4 py-2 focus:outline-none focus:ring-2 focus:ring-[#ff6b2c] transition-all bg-gray-50 focus:bg-white`}
-                    placeholder="Enter complete restaurant address"
-                    rows={3}
-                  />
-                </div>
-                {errors.address && (
-                  <p className="mt-1 text-sm text-red-500 flex items-center">
-                    <span className="mr-1">•</span> {errors.address}
-                  </p>
-                )}
-              </div>
-
-              {/* Action */}
-              <div className="mt-8 flex justify-end">
-                <button
-                  type="button"
-                  onClick={handleSaveDetails}
-                  className="inline-flex items-center px-5 py-2 rounded-md font-medium text-white bg-[#ff6b2c] hover:bg-[#e85a1f] transition-all shadow-md"
-                >
-                  <span>Save &amp; Continue</span>
-                  <ChevronRight className="w-5 h-5 ml-2" />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Upload Menu */}
-        {setupStep === 2 && (
           <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
               Upload Menu
@@ -692,25 +419,21 @@ export function Settings({
                 Please save restaurant details first to get a Restaurant ID
               </div>
             )}
-            <div className="flex justify-between mt-6">
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="px-4 py-2 text-sm font-medium rounded-md bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 transition-all"
-              >
-                Previous
-              </button>
+            <div className="flex justify-center mt-6">
+            
               <button
                 type="submit"
                 disabled={isSubmitting || !restaurantDetails.restaurantId}
-                className="ml-auto px-4 py-2 text-sm font-medium rounded-md text-white bg-[#ff6b2c] hover:bg-[#e85a1f] disabled:opacity-50 transition-all shadow-sm"
+                className="px-4 py-2 text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 disabled:opacity-50 transition-all shadow-sm"
                 onClick={() => setShowSetup(false)}
               >
-                {isSubmitting ? "Submitting..." : "Submit"}
+                {isSubmitting ? "Submitting..." : "Submit menu"}
               </button>
             </div>
           </div>
-        )}
+      
+
+      
       </div>
     </div>
   );

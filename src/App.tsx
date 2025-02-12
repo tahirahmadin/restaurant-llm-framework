@@ -8,6 +8,8 @@ import { Payments } from "./components/Payments";
 import { Help } from "./components/Help";
 import { Toaster, toast } from "sonner";
 import { Settings } from "./components/Settings";
+import { AuthWrapper } from "./components/auth/AuthWrapper";
+import useAuthStore from "./store/useAuthStore";
 
 interface Message {
   id: string;
@@ -77,7 +79,8 @@ type TabType =
   | "settings";
 
 function App() {
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const { user } = useAuthStore();
+  const [activeTab, setActiveTab] = useState<TabType>("orders");
   const [isExpanded, setIsExpanded] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -101,10 +104,21 @@ function App() {
   // Initialize restaurantDetails from localStorage
   const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(
     () => {
-      const savedDetails = localStorage.getItem("restaurantDetails");
-      return savedDetails
-        ? JSON.parse(savedDetails)
-        : {
+      if (user?.restaurantId) {
+        const savedDetails = localStorage.getItem("restaurantDetails");
+        return savedDetails
+          ? JSON.parse(savedDetails)
+          : {
+              restaurantId: user.restaurantId,
+              name: "",
+              contactNo: "",
+              address: "",
+              isOnline: false,
+              menuUploaded: false,
+              menu: { File: null, extractedText: "" },
+            };
+      }
+      return {
             name: "",
             contactNo: "",
             address: "",
@@ -112,7 +126,7 @@ function App() {
             menuUploaded: false,
             menu: { File: null, extractedText: "" },
           };
-    }
+    },
   );
 
   // **Merging customisations with menuItems**
@@ -165,6 +179,7 @@ function App() {
     }
   };
   return (
+    <AuthWrapper>
     <div className="flex h-screen bg-[#fff8f5] relative">
       <Toaster position="top-right" />
       <LeftBar
@@ -196,6 +211,7 @@ function App() {
         )}
       </div>
     </div>
+    </AuthWrapper>
   );
 }
 

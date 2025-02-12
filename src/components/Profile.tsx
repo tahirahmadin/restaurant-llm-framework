@@ -1,254 +1,233 @@
-import React, { useState } from "react";
-import { Camera, Check } from "lucide-react";
-
-interface ProfileData {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: string;
-  location: string;
-  postalCode: string;
-  dateOfBirth: string;
-  gender: "male" | "female";
-}
+import React, { useState, useEffect } from "react";
+import { Camera, Check, MapPin, Phone, Building2, Mail } from "lucide-react";
+import { toast } from "sonner";
+import useAuthStore from "../store/useAuthStore";
+import { getRestaurantProfile, updateRestaurantProfile } from "../actions/serverActions";
+import type { RestaurantProfile } from "../types/restaurant";
+import { API_URL } from "../config";
 
 export function Profile() {
-  const [profileImage, setProfileImage] = useState(
-    "https://www.emirates-online.net/English/wp-content/uploads/2020/10/Papa-Johns-Pizza-Logo.jpg"
-  );
+  const { user } = useAuthStore();
+  const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
-  const [profileData, setProfileData] = useState<ProfileData>({
-    firstName: "Papa",
-    lastName: "Johns",
-    email: "rolandDonald@gmail.com",
-    phone: "(405) 555-0128",
-    address: "3505 Parker Rd.",
-    location: "Atlanta, USA",
-    postalCode: "30301",
-    dateOfBirth: "1 Feb, 1995",
-    gender: "male",
-  });
+  const [profileData, setProfileData] = useState<RestaurantProfile | null>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setProfileImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user?.restaurantId) {
+        toast.error("Restaurant ID not found");
+        return;
+      }
+
+      try {
+        const data = await getRestaurantProfile(user.restaurantId);
+        setProfileData(data);
+      } catch (error) {
+        toast.error("Failed to load restaurant profile");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadProfile();
+  }, [user?.restaurantId]);
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("restaurantId", user?.restaurantId?.toString() || "");
+      formData.append("itemId", "0");
+
+      const response = await fetch(`${API_URL}/api/upload/uploadImage`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!data.success) throw new Error(data.error || "Upload failed");
+
+      setProfileData(prev => prev ? { ...prev, image: data.fileUrl } : null);
+      toast.success("Image uploaded successfully!");
+    } catch (error) {
+      toast.error("Failed to upload image");
     }
   };
 
-  const handleInputChange = (field: keyof ProfileData, value: string) => {
-    setProfileData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!profileData || !user?.restaurantId) return;
+    const { username } = user;
+
+    try {
+      const updatedProfile = await updateRestaurantProfile(user.restaurantId, {
+        name: profileData.name,
+        description: profileData.description,
+        contactNo: profileData.contactNo,
+        address: profileData.address,
+        adminUsername: username,
+        image:profileData.image,
+        location: {
+          latitude: profileData.location.coordinates[1],
+          longitude: profileData.location.coordinates[0]
+        }
+      });
+
+      setProfileData(updatedProfile);
+      setIsEditing(false);
+      toast.success("Profile updated successfully!");
+    } catch (error) {
+      toast.error("Failed to update profile");
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsEditing(false);
-    // Here you would typically save the changes to a backend
-  };
+  if (isLoading) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-gray-500">Loading profile...</div>
+      </div>
+    );
+  }
+
+  if (!profileData) {
+    return (
+      <div className="p-6 flex items-center justify-center">
+        <div className="text-red-500">Failed to load profile</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="bg-white rounded-xl shadow-sm p-6">
-        <h1 className="text-2xl font-semibold mb-6">Personal Information</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-semibold">Restaurant Profile</h1>
+          <button
+            onClick={() => setIsEditing(!isEditing)}
+            className="px-4 py-2 text-sm font-medium rounded-lg transition-colors bg-red-600 text-white hover:bg-red-700"
+          >
+            {isEditing ? "Cancel Editing" : "Edit Profile"}
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Profile Image */}
-          <div className="flex items-center gap-8 mb-8">
+          <div className="flex items-center gap-6">
             <div className="relative">
               <img
-                src={profileImage}
-                alt="Profile"
-                className="w-24 h-24 rounded-full object-cover"
+                src={profileData.image || "https://via.placeholder.com/150"}
+                alt="Restaurant"
+                className="w-32 h-32 rounded-xl object-cover"
               />
-              <label
-                htmlFor="profile-image"
-                className="absolute bottom-0 right-0 w-8 h-8 bg-[#f15927] rounded-full flex items-center justify-center cursor-pointer hover:bg-[#d94d1f] transition-colors"
-              >
-                <Camera className="w-4 h-4 text-white" />
-                <input
-                  type="file"
-                  id="profile-image"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                />
-              </label>
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">{`${profileData.firstName} ${profileData.lastName}`}</h2>
-              <p className="text-gray-500">Dubai Mall, UAE</p>
-            </div>
-          </div>
-
-          {/* Gender Selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Gender
-            </label>
-            <div className="flex gap-4">
-              {["male", "female"].map((gender) => (
-                <label key={gender} className="flex items-center gap-2">
+              {isEditing && (
+                <label className="absolute bottom-2 right-2 w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center cursor-pointer hover:bg-red-700 transition-colors">
+                  <Camera className="w-4 h-4 text-white" />
                   <input
-                    type="radio"
-                    name="gender"
-                    value={gender}
-                    checked={profileData.gender === gender}
-                    onChange={(e) =>
-                      handleInputChange("gender", e.target.value)
-                    }
-                    className="w-4 h-4 text-[#f15927] focus:ring-[#f15927]"
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleImageUpload(file);
+                      }
+                    }}
                   />
-                  <span className="capitalize">{gender}</span>
                 </label>
-              ))}
+              )}
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold">{profileData.name}</h2>
+              <p className="text-gray-500 mt-1">Restaurant ID: {profileData.restaurantId}</p>
+              <p className="text-gray-500 mt-1">
+                Member since {new Date(profileData.createdAt).toLocaleDateString()}
+              </p>
             </div>
           </div>
 
-          {/* Form Grid */}
+          {/* Restaurant Details */}
           <div className="grid grid-cols-2 gap-6">
-            {/* First Name */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                First Name
-              </label>
-              <input
-                type="text"
-                value={profileData.firstName}
-                onChange={(e) => handleInputChange("firstName", e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
-                disabled={!isEditing}
-              />
-            </div>
-
-            {/* Last Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Last Name
-              </label>
-              <input
-                type="text"
-                value={profileData.lastName}
-                onChange={(e) => handleInputChange("lastName", e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
-                disabled={!isEditing}
-              />
-            </div>
-
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
+                Restaurant Name
               </label>
               <div className="relative">
+                <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
-                  type="email"
-                  value={profileData.email}
-                  onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
+                  type="text"
+                  value={profileData.name}
+                  onChange={(e) => setProfileData(prev => prev ? { ...prev, name: e.target.value } : null)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
                   disabled={!isEditing}
                 />
-                <Check className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-green-500" />
               </div>
             </div>
 
-            {/* Phone */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number
+                Contact Number
               </label>
-              <input
-                type="tel"
-                value={profileData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="tel"
+                  value={profileData.contactNo}
+                  onChange={(e) => setProfileData(prev => prev ? { ...prev, contactNo: e.target.value } : null)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
+                  disabled={!isEditing}
+                />
+              </div>
+            </div>
+
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={profileData.description}
+                onChange={(e) => setProfileData(prev => prev ? { ...prev, description: e.target.value } : null)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
+                rows={3}
                 disabled={!isEditing}
               />
             </div>
 
-            {/* Address */}
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Address
               </label>
-              <input
-                type="text"
-                value={profileData.address}
-                onChange={(e) => handleInputChange("address", e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
-                disabled={!isEditing}
-              />
-            </div>
-
-            {/* Location */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Location
-              </label>
-              <select
-                value={profileData.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
-                className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
-                disabled={!isEditing}
-              >
-                <option value="Atlanta, USA">Atlanta, USA</option>
-                <option value="New York, USA">New York, USA</option>
-                <option value="Los Angeles, USA">Los Angeles, USA</option>
-              </select>
-            </div>
-
-            {/* Postal Code */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Postal Code
-              </label>
-              <input
-                type="text"
-                value={profileData.postalCode}
-                onChange={(e) =>
-                  handleInputChange("postalCode", e.target.value)
-                }
-                className="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
-                disabled={!isEditing}
-              />
+              <div className="relative">
+                <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  value={profileData.address}
+                  onChange={(e) => setProfileData(prev => prev ? { ...prev, address: e.target.value } : null)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
+                  disabled={!isEditing}
+                />
+              </div>
             </div>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-end gap-4 mt-8">
-            {isEditing ? (
-              <>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="px-6 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
-                >
-                  Discard Changes
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-[#f15927] text-white rounded-lg hover:bg-[#d94d1f] transition-colors"
-                >
-                  Save Changes
-                </button>
-              </>
-            ) : (
+          {isEditing && (
+            <div className="flex justify-end gap-4 mt-8">
               <button
                 type="button"
-                onClick={() => setIsEditing(true)}
-                className="px-6 py-2 bg-[#f15927] text-white rounded-lg hover:bg-[#d94d1f] transition-colors"
+                onClick={() => setIsEditing(false)}
+                className="px-6 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
               >
-                Edit Profile
+                Cancel
               </button>
-            )}
-          </div>
+              <button
+                type="submit"
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Save Changes
+              </button>
+            </div>
+          )}
         </form>
       </div>
     </div>

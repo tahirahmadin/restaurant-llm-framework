@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Search, Filter, Clock } from "lucide-react";
+import { Search, Filter, Clock, ChevronRight } from "lucide-react";
 import {
   fetchRestaurantOrders,
   updateOrderStatus as updateOrderStatusAPI,
 } from "../actions/serverActions";
 import useOrderStore from "../store/useOrderStore";
+import useAuthStore from "../store/useAuthStore";
 import { toast } from "sonner";
 
 interface CustomerDetails {
@@ -39,6 +40,7 @@ interface OrderItem {
 }
 
 export function Orders() {
+  const { user } = useAuthStore();
   const [activeStatus, setActiveStatus] = useState<
     "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
   >("PROCESSING");
@@ -50,8 +52,13 @@ export function Orders() {
   // Initial data load
   useEffect(() => {
     const loadOrders = async () => {
+      if (!user?.restaurantId) {
+        toast.error("Restaurant ID not found");
+        return;
+      }
+
       try {
-        const fetchedOrders = await fetchRestaurantOrders("6");
+        const fetchedOrders = await fetchRestaurantOrders(user.restaurantId);
         console.log(fetchedOrders);
         setOrders(fetchedOrders);
       } catch (error) {
@@ -61,7 +68,7 @@ export function Orders() {
     };
 
     loadOrders();
-  }, [setOrders]);
+  }, [setOrders, user?.restaurantId]);
 
   const handleUpdateStatus = (order: Order, newStatus: string) => {
     try {
@@ -103,20 +110,23 @@ export function Orders() {
   return (
     <div className="flex h-full">
       {/* Left Panel - Orders List */}
-      <div className="w-1/2 p-6 border-r">
+      <div className="w-1/2 p-6 border-r bg-white">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-semibold">Orders</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-gray-900">Orders</h1>
+            <p className="text-sm text-gray-500 mt-1">Manage your restaurant orders</p>
+          </div>
         </div>
 
         {/* Status Tabs */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex gap-4 mb-6 overflow-x-auto no-scrollbar pb-2">
           <button
             onClick={() => setActiveStatus("PROCESSING")}
             className={`px-4 py-2 rounded-lg ${
               activeStatus === "PROCESSING"
-                ? "bg-[#f15927] text-white"
+                ? "bg-red-600 text-white shadow-sm"
                 : "text-gray-600 hover:bg-gray-100"
-            }`}
+            } whitespace-nowrap transition-all duration-200`}
           >
             Fresh Orders
           </button>
@@ -124,9 +134,9 @@ export function Orders() {
             onClick={() => setActiveStatus("COOKING")}
             className={`px-4 py-2 rounded-lg ${
               activeStatus === "COOKING"
-                ? "bg-[#f15927] text-white"
+                ? "bg-red-600 text-white shadow-sm"
                 : "text-gray-600 hover:bg-gray-100"
-            }`}
+            } whitespace-nowrap transition-all duration-200`}
           >
             Cooking
           </button>
@@ -134,9 +144,9 @@ export function Orders() {
             onClick={() => setActiveStatus("OUT_FOR_DELIVERY")}
             className={`px-4 py-2 rounded-lg ${
               activeStatus === "OUT_FOR_DELIVERY"
-                ? "bg-[#f15927] text-white"
+                ? "bg-red-600 text-white shadow-sm"
                 : "text-gray-600 hover:bg-gray-100"
-            }`}
+            } whitespace-nowrap transition-all duration-200`}
           >
             Out for Delivery
           </button>
@@ -144,81 +154,115 @@ export function Orders() {
             onClick={() => setActiveStatus("COMPLETED")}
             className={`px-4 py-2 rounded-lg ${
               activeStatus === "COMPLETED"
-                ? "bg-[#f15927] text-white"
+                ? "bg-red-600 text-white shadow-sm"
                 : "text-gray-600 hover:bg-gray-100"
-            }`}
+            } whitespace-nowrap transition-all duration-200`}
           >
             Completed
           </button>
         </div>
 
         {/* Orders List */}
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-220px)] no-scrollbar px-1">
           {filteredOrders.map((order) => (
             <button
               key={order._id}
               onClick={() => setSelectedOrder(order)}
-              className={`w-full p-4 rounded-xl border ${
+              className={`w-full p-4 rounded-xl transition-all duration-200 hover:shadow-md relative overflow-hidden ${
                 selectedOrder?._id === order._id
-                  ? "border-[#f15927] bg-orange-50"
-                  : "border-gray-200 hover:border-[#f15927] hover:bg-orange-50"
+                  ? "bg-gradient-to-r from-red-50 to-red-100 border border-red-200"
+                  : "bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-red-50 border border-gray-200"
               }`}
             >
-              <div className="flex justify-between items-center mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold">
-                    Order: {order.orderId.slice(30, 40)}
-                  </span>
+              {/* Status Indicator Line */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${
+                order.status === "PROCESSING"
+                  ? "bg-yellow-400"
+                  : order.status === "COOKING"
+                  ? "bg-red-500"
+                  : order.status === "OUT_FOR_DELIVERY"
+                  ? "bg-blue-500"
+                  : "bg-green-500"
+              }`} />
+
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-semibold text-gray-900">
+                      #{order.orderId.slice(-8)}
+                    </span>
+                    <span className="text-sm text-gray-500">•</span>
+                    <span className="text-sm text-gray-500">
+                      {new Date(order.createdAt).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                  </div>
                   <div className="flex flex-col">
                     <span className="text-sm text-gray-500">
-                      Customer: {order.customerDetails?.name || "N/A"}
+                      {order.customerDetails?.name || "N/A"}
                     </span>
                     {order.estimatedMinutes && (
-                      <span className="text-sm text-gray-500">
-                        Est. Time: {order.estimatedMinutes} mins
+                      <span className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                        <Clock className="w-4 h-4" />
+                        {order.estimatedMinutes} mins
                       </span>
                     )}
                   </div>
                 </div>
                 <span
-                  className={`px-2 py-1 rounded-full text-sm ${
+                  className={`px-3 py-1 rounded-full text-xs font-medium ${
                     order.status === "PROCESSING"
-                      ? "bg-yellow-100 text-yellow-600"
+                      ? "bg-yellow-100 text-yellow-700"
                       : order.status === "COOKING"
-                      ? "bg-orange-100 text-[#f15927]"
-                      : "bg-green-100 text-green-600"
+                      ? "bg-red-100 text-red-700"
+                      : order.status === "OUT_FOR_DELIVERY"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-green-100 text-green-700"
                   }`}
                 >
                   {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-2 text-gray-500">
-                  <Clock className="w-4 h-4" />
-                  <span className="text-sm">
-                    {new Date(order.createdAt).toLocaleString()}
-                  </span>
+              <div className="flex justify-between items-center pt-2">
+                <div className="flex items-center gap-2">
+                  {order.items.map((item, index) => (
+                    <span key={index} className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full">
+                      {item.quantity}x {item.name}
+                    </span>
+                  )).slice(0, 2)}
+                  {order.items.length > 2 && (
+                    <span className="text-sm text-gray-500">
+                      +{order.items.length - 2} more
+                    </span>
+                  )}
                 </div>
-                <span className="font-semibold">
+                <span className="font-semibold text-gray-900">
                   {(order.totalAmount / 100).toFixed(2)} AED
                 </span>
               </div>
             </button>
           ))}
+          {filteredOrders.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No orders found in this category
+            </div>
+          )}
         </div>
       </div>
 
       {/* Right Panel - Order Details */}
-      <div className="w-1/2 p-6">
+      <div className="w-1/2 p-6 bg-gray-50">
         {selectedOrder ? (
           <div className="space-y-6">
             <div className="flex justify-between items-center mb-6">
               <div>
                 <h2 className="text-xl font-semibold mb-1">
-                  Order {selectedOrder.orderId.slice(30, 40)}
+                  Order #{selectedOrder.orderId.slice(-8)}
                 </h2>
               </div>
-              <span className="text-[#f15927] bg-orange-100 px-3 py-1 rounded-full">
+              <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full text-sm">
                 {new Date(selectedOrder.createdAt).toLocaleString()}
               </span>
             </div>
@@ -250,31 +294,31 @@ export function Orders() {
 
             {/* Order Items */}
             <div className="bg-white rounded-xl border border-gray-200">
-              <h3 className="font-medium p-4 border-b">Items for Delivery</h3>
+              <h3 className="font-medium p-4 border-b border-gray-100">Order Items</h3>
               {selectedOrder.items.map((item, index) => (
                 <div
                   key={index}
                   className={`flex gap-4 p-4 ${
-                    index !== selectedOrder.items.length - 1 ? "border-b" : ""
+                    index !== selectedOrder.items.length - 1 ? "border-b border-gray-100" : ""
                   }`}
                 >
                   <img
                     src={`https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/5-${item.id}.jpg`}
                     alt={item.name}
-                    className="w-16 h-16 rounded-lg object-cover"
+                    className="w-16 h-16 rounded-lg object-cover border border-gray-100"
                   />
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold">{item.name}</h3>
+                        <h3 className="font-medium text-gray-900">{item.name}</h3>
                         <p className="text-sm text-gray-500">
                           {item.description}
                         </p>
                         <p className="text-sm text-gray-500 mt-1">
-                          ${item.price.toFixed(2)} × {item.quantity}
+                          ${item.price.toFixed(2)} × {item.quantity} items
                         </p>
                       </div>
-                      <span className="font-semibold">
+                      <span className="font-medium text-red-600">
                         {(item.price * item.quantity).toFixed(2)} AED
                       </span>
                     </div>
@@ -286,7 +330,7 @@ export function Orders() {
             {/* Order Summary */}
             <div className="bg-white p-4 rounded-xl border border-gray-200">
               {selectedOrder.status === "COOKING" && (
-                <form className="mb-4">
+                <form className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Estimated Delivery Time (minutes)
                   </label>
@@ -301,17 +345,17 @@ export function Orders() {
                           Math.max(1, parseInt(e.target.value) || 1)
                         )
                       }
-                      className="flex-1 p-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
+                      className="flex-1 p-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-600"
                       required
                     />
                   </div>
                 </form>
               )}
 
-              <div className="space-y-2 mb-4">
-                <div className="flex justify-between font-semibold text-lg pt-2 ">
+              <div className="space-y-2 mb-6">
+                <div className="flex justify-between font-semibold text-lg pt-2">
                   <span>Total</span>
-                  <span>
+                  <span className="text-red-600">
                     {(selectedOrder.totalAmount / 100).toFixed(2)} AED
                   </span>
                 </div>
@@ -319,10 +363,10 @@ export function Orders() {
 
               {/* Action Buttons */}
               <button
-                className={`w-full py-3 rounded-lg transition-colors ${
+                className={`w-full py-3 rounded-lg transition-all duration-200 ${
                   selectedOrder.status === "COMPLETED"
                     ? "bg-gray-200 text-gray-600 cursor-not-allowed"
-                    : "bg-[#f15927] text-white hover:bg-[#d94d1f]"
+                    : "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow"
                 }`}
                 onClick={() => {
                   const nextStatus =
@@ -347,7 +391,12 @@ export function Orders() {
           </div>
         ) : (
           <div className="h-full flex items-center justify-center text-gray-500">
-            Select an order to view details
+            <div className="text-center">
+              <div className="mb-4">
+                <ChevronRight className="w-12 h-12 mx-auto text-gray-400" />
+              </div>
+              <p>Select an order to view details</p>
+            </div>
           </div>
         )}
       </div>

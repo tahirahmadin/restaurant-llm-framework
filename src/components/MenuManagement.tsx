@@ -3,6 +3,9 @@ import { Trash2, Save, Plus, ImageIcon, X, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import ImageUploader from './ImageUploader';
 import { API_URL } from '../config';
+import { updateMenuItem } from '../actions/serverActions';
+
+import useAuthStore from '../store/useAuthStore';
 
 /* ------------------------------------------------------------------
    1) Main MenuItem data (no built-in customizations)
@@ -116,7 +119,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
   const [customisations, setCustomisations] = useState<ItemCustomisation[]>([]);
   // C) UI state
   const [hasChanges, setHasChanges] = useState(false);
-  const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
   // We'll store the ID of the item we're about to delete (for confirmation).
@@ -225,45 +228,46 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
 
   // Manually save changes
   const handleSaveChanges = async () => {
+    const { user } = useAuthStore.getState();
+    
     try {
-      const response = await fetch(`${API_URL}/api/restaurant/updateMenu/${restaurantId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          menuItems: menuItems.map(item => ({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            category: item.category,
-            price: Number(item.price),
-            image: item.image,
-            spicinessLevel: Number(item.spicinessLevel),
-            sweetnessLevel: Number(item.sweetnessLevel),
-            dietaryPreference: item.dietaryPreference,
-            healthinessScore: Number(item.healthinessScore),
-            caffeineLevel: item.caffeineLevel,
-            sufficientFor: Number(item.sufficientFor),
-            available: Boolean(item.available)
-          })),
-          customisations: customisations
-        })
+      if (!selectedItem) {
+        toast.error('No item selected');
+        return;
+      }
+
+      if (!user?.username) {
+        toast.error('User not authenticated');
+        return;
+      }
+
+      // Update single menu item
+      const updatedItem = await updateMenuItem(Number(restaurantId), selectedItem.id, {
+        name: selectedItem.name,
+        description: selectedItem.description,
+        category: selectedItem.category,
+        price: Number(selectedItem.price),
+        image: selectedItem.image,
+        spicinessLevel: Number(selectedItem.spicinessLevel),
+        sweetnessLevel: Number(selectedItem.sweetnessLevel),
+        dietaryPreference: selectedItem.dietaryPreference,
+        healthinessScore: Number(selectedItem.healthinessScore),
+        caffeineLevel: selectedItem.caffeineLevel,
+        sufficientFor: Number(selectedItem.sufficientFor),
+        available: Boolean(selectedItem.available),
+       
+        available: Boolean(selectedItem.available),
+        adminUsername: user.username
       });
-  
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save menu changes');
-      }
-  
-      const data = await response.json();
-      if (data.success) {
-        onUpdate(menuItems, customisations);
-        toast.success('Changes saved successfully!');
-        setHasChanges(false);
-      } else {
-        throw new Error(data.error || 'Failed to save menu changes');
-      }
+
+      // Update local state
+      const updatedMenuItems = menuItems.map(item =>
+        item.id === selectedItem.id ? updatedItem : item
+      );
+
+      onUpdate(updatedMenuItems, customisations);
+      toast.success('Item updated successfully!');
+      setHasChanges(false);
     } catch (error) {
       console.error('Error saving changes:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to save changes');
@@ -272,10 +276,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
 
   // Expand/collapse categories in the sidebar
   const toggleCategory = (category: string) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [category]: !prev[category]
-    }));
+    setSelectedCategory(selectedCategory === category ? '' : category);
   };
 
   /* ------------------------------------------------------------------
@@ -459,95 +460,123 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
      8) Render
   */
      return (
-      <div className="flex h-screen bg-gray-50">
-        {/* Left Sidebar - Enhanced */}
-        <div className="w-72 bg-white border-r border-gray-200 flex flex-col">
+      <div className="h-screen bg-gray-50 relative">
+        <div className="flex-1 flex flex-col">
           <div className="p-6 border-b border-gray-200 flex justify-between items-center">
             <div>
               <h1 className="text-xl font-semibold text-gray-900">{restaurantName}</h1>
               <p className="text-sm text-gray-500 mt-1">Menu Management</p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => addNewRow()}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add New Item
+              </button>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+          </div>
+
+          {/* Categories Bar */}
+          <div className="border-b border-gray-200 bg-white sticky top-0 z-10 overflow-x-auto">
+            <div className="px-6 py-3 flex gap-2 min-w-max">
+              <button
+                onClick={() => setSelectedCategory('All')}
+                className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                  selectedCategory === 'All'
+                    ? 'bg-red-600 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                ALL
+              </button>
+              {[...new Set(menuItems.map(item => item.category || 'Uncategorized'))].sort().map((category) => (
+                <button
+                  key={category}
+                  onClick={() => toggleCategory(category)}
+                  className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                    selectedCategory === category
+                      ? 'bg-red-600 text-white'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  {category || 'Uncategorized'}
+                </button>
+              ))}
+            </div>
           </div>
   
-          <div className="overflow-y-auto flex-1">
+          {/* Items Grid */}
+          <div className="flex-1 overflow-y-auto p-6">
             {Object.keys(groupedItems).length === 0 ? (
               <div className="p-8 text-center">
                 <div className="bg-orange-50 rounded-lg p-6 mb-4">
                   <p className="text-gray-600 mb-4">Start by adding your first menu item</p>
-                  <button
-                    onClick={() => addNewRow()}
-                    className="px-4 py-2 bg-[#f15927] text-white rounded-lg hover:bg-[#e54816] transition-colors flex items-center mx-auto"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add First Item
-                  </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-1 p-2">
-                {Object.entries(groupedItems).map(([category, items]) => (
-                  <div key={category} className="rounded-lg overflow-hidden">
-                    <button
-                      onClick={() => toggleCategory(category)}
-                      className="w-full p-4 flex items-center justify-between hover:bg-orange-50 transition-colors rounded-lg"
-                    >
-                      <span className="font-medium text-gray-700">{category || 'Uncategorized'}</span>
-                      <ChevronRight
-                        className={`w-4 h-4 text-gray-400 transform transition-transform duration-200 ${
-                          expandedCategories[category] ? 'rotate-90' : ''
-                        }`}
-                      />
-                    </button>
-  
-                    {expandedCategories[category] && (
-                      <div className="pl-4">
-                        {items.map(item => (
-                          <button
-                            key={item.id}
-                            onClick={() => setSelectedItem(item)}
-                            className={`w-full p-3 text-left rounded-lg transition-colors ${
-                              selectedItem?.id === item.id 
-                                ? 'bg-[#f15927] text-white' 
-                                : 'hover:bg-orange-50 text-gray-700'
-                            }`}
-                          >
-                            <div className="flex items-center">
-                              <span className="flex-1">{item.name || 'New Item'}</span>
-                              {!item.available && (
-                                <span className="ml-2 text-xs px-2 py-1 bg-red-100 text-red-600 rounded-full">
-                                  Unavailable
-                                </span>
-                              )}
-                            </div>
-                          </button>
-                        ))}
+              <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                {(selectedCategory === 'All' ? menuItems : groupedItems[selectedCategory] || []).map(item => (
+                  <div
+                    key={item.id}
+                    onClick={() => setSelectedItem(item)}
+                    className={`bg-white rounded-xl shadow-sm overflow-hidden cursor-pointer transition-all hover:shadow-md ${
+                      selectedItem?.id === item.id ? 'ring-2 ring-red-600' : ''
+                    }`}
+                  >
+                    <div className="h-48 bg-gray-100 relative">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <ImageIcon className="w-12 h-12 text-gray-400" />
+                        </div>
+                      )}
+                      {!item.available && (
+                        <span className="absolute top-2 right-2 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
+                          Unavailable
+                        </span>
+                      )}
+                      <span className="absolute top-2 left-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        {item.category || 'Uncategorized'}
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-medium text-gray-900">{item.name || 'New Item'}</h3>
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-2">{item.description}</p>
+                      <div className="mt-4 flex items-center justify-between">
+                        <span className="font-medium text-red-600">${item.price}</span>
+                        <div className="flex items-center gap-2">
+                          {item.dietaryPreference?.map((pref) => (
+                            <span key={pref} className="text-xs px-2 py-1 bg-gray-100 rounded-full">
+                              {pref}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    )}
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-  
-            <button
-              onClick={() => addNewRow()}
-              className="w-full p-4 text-[#f15927] hover:bg-orange-50 flex items-center justify-center transition-colors mt-4"
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Add New Item
-            </button>
           </div>
         </div>
   
-        {/* Main Content Area - Enhanced */}
+        {/* Overlay for Item Details */}
         {selectedItem ? (
-          <div className={`flex-1 overflow-y-auto bg-gray-50 ${confirmDeleteItemId ? 'blur-sm' : ''}`}>
-            <div className="max-w-4xl mx-auto py-6">
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
               <div className="bg-white rounded-xl shadow-sm">
                 {/* Header */}
                 <div className="p-6 border-b border-gray-200 flex justify-between items-center">
@@ -555,25 +584,14 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                     <h2 className="text-xl font-semibold text-gray-900">Edit Item</h2>
                     <p className="text-sm text-gray-500 mt-1">ID: {selectedItem.id}</p>
                   </div>
-                  <div className="flex space-x-4">
-                    <button
-                      onClick={() => handleDeleteIconClick(selectedItem.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                    {hasChanges && (
-                      <button
-                        onClick={handleSaveChanges}
-                        className="px-4 py-2 bg-[#f15927] text-white rounded-lg hover:bg-[#e54816] flex items-center transition-colors"
-                      >
-                        <Save className="w-4 h-4 mr-2" />
-                        Save Changes
-                      </button>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => setSelectedItem(null)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
                 </div>
-  
+
                 {/* Form Fields */}
                 <div className="p-6">
                   <div className="grid grid-cols-2 gap-6">
@@ -601,11 +619,11 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                               checked={selectedItem[key] || false}
                               onChange={e => handleFieldEdit(selectedItem.id, key, e.target.checked)}
                             />
-                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:bg-[#f15927] after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                            <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:bg-red-600 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
                           </label>
                         ) : key === 'caffeineLevel' ? (
                           <select
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
                             value={selectedItem[key] || 'none'}
                             onChange={e => handleFieldEdit(selectedItem.id, key, e.target.value)}
                           >
@@ -615,7 +633,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                           </select>
                         ) : key === 'dietaryPreference' ? (
                           <select
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
                             multiple
                             value={Array.isArray(selectedItem[key]) ? selectedItem[key] : []}
                             onChange={e => {
@@ -630,7 +648,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                         ) : (
                           <input
                             type={key === 'price' ? 'number' : 'text'}
-                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent transition-colors"
+                            className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors"
                             value={selectedItem[key]}
                             onChange={e => handleFieldEdit(selectedItem.id, key, e.target.value)}
                             disabled={key === 'id'}
@@ -639,7 +657,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                       </div>
                     ))}
                   </div>
-  
+
                   {/* Customizations Section */}
                   <div className="mt-8">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Customizations</h3>
@@ -651,7 +669,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                             <div className="flex justify-between items-center mb-4">
                               <input
                                 type="text"
-                                className="text-lg font-medium bg-transparent border-b border-gray-300 focus:border-[#f15927] px-2 py-1"
+                                className="text-lg font-medium bg-transparent border-b border-gray-300 focus:border-red-600 px-2 py-1"
                                 value={category.categoryName}
                                 onChange={e => handleCategoryFieldChange(selectedItem.id, index, 'categoryName', e.target.value)}
                               />
@@ -706,7 +724,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                             
                             <button
                               onClick={() => addNewItem(selectedItem.id, index)}
-                              className="mt-4 text-[#f15927] hover:text-[#e54816] flex items-center"
+                              className="mt-4 text-red-600 hover:text-red-700 flex items-center"
                             >
                               <Plus className="w-4 h-4 mr-1" />
                               Add Item
@@ -716,7 +734,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                       
                       <button
                         onClick={() => addNewCategory(selectedItem.id)}
-                        className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-[#f15927] hover:text-[#f15927] transition-colors"
+                        className="w-full p-4 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-red-600 hover:text-red-600 transition-colors"
                       >
                         <Plus className="w-4 h-4 mx-auto mb-2" />
                         Add New Category
@@ -727,16 +745,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
               </div>
             </div>
           </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center bg-gray-50">
-            <div className="text-center">
-              <div className="text-gray-400 mb-4">
-                <ChevronRight className="w-12 h-12 mx-auto" />
-              </div>
-              <p className="text-gray-500">Select an item to edit or add a new item</p>
-            </div>
-          </div>
-        )}
+        ) : null}
   
         {/* Delete Confirmation Modal */}
         {confirmDeleteItemId && (
@@ -766,4 +775,4 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
     );
   };
   
-  export default MenuManagement;
+export default MenuManagement
