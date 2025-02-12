@@ -614,19 +614,36 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
           <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="bg-white rounded-xl shadow-sm">
               {/* Header */}
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Edit Item
-                  </h2>
+                <div className="p-4 border-b border-gray-200 flex justify-between items-center relative">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900">
+                      Edit Item
+                    </h2>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <button
+                      onClick={() => handleDeleteIconClick(selectedItem.id)}
+                      className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                    {hasChanges && (
+                      <button
+                        onClick={handleSaveChanges}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors"
+                      >
+                        <Save className="w-4 h-4 mr-2" />
+                        Save Changes
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setSelectedItem(null)}
+                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    >
+                      <X className="w-5 h-5 text-gray-500" />
+                    </button>
+                  </div>
                 </div>
-                <button
-                  onClick={() => setSelectedItem(null)}
-                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
 
               {/* Form Fields */}
               <div className="p-6">
