@@ -2,15 +2,23 @@ import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { API_URL } from "../config";
 import useAuthStore from "../store/useAuthStore";
-import { Clock, CheckCircle2, ArrowRight, Wallet } from "lucide-react";
-import { getRestaurantProfile } from "../actions/serverActions";
+import { Clock, CheckCircle2, ArrowRight, Wallet, Eye, EyeOff } from "lucide-react";
+import { getRestaurantProfile, updateSolanaDepositAddress } from "../actions/serverActions";
 
 export function Payments() {
-  const { user } = useAuthStore();
+  const { user, solanaAddress: storedAddress, setSolanaAddress: setStoredAddress } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   const [linkExpiry, setLinkExpiry] = useState<number | null>(null);
+  const [editingAddress, setEditingAddress] = useState(storedAddress || "");
+  const [isEditingSolana, setIsEditingSolana] = useState(false);
+  const [showSolanaAddress, setShowSolanaAddress] = useState(false);
+
+  useEffect(() => {
+    setEditingAddress(storedAddress || "");
+  }, [storedAddress]);
+
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -22,6 +30,13 @@ export function Payments() {
       try {
         const profile = await getRestaurantProfile(user.restaurantId);
         setPaymentsEnabled(profile.paymentsEnabled);
+
+        if (profile.solanaAddress) {
+          setSolanaAddress(profile.solanaAddress);
+          setIsEditingSolana(false);
+        }else {
+          setIsEditingSolana(true);  
+        }
       } catch (error) {
         toast.error("Failed to load restaurant profile");
       } finally {
@@ -30,7 +45,33 @@ export function Payments() {
     };
 
     loadProfile();
-  }, [user?.restaurantId]);
+  }, [user?.restaurantId, setStoredAddress]);
+
+  const handleSaveSolanaAddress = async () => {
+    if (!user?.restaurantId || !user?.username) {
+      toast.error("Restaurant ID or admin username not found");
+      return;
+    }
+
+    try {
+      if (!editingAddress) {
+        toast.error("Please enter a valid Solana address");
+        return;
+      }
+
+      await updateSolanaDepositAddress(
+        user.restaurantId,
+        editingAddress,
+        user.username
+      );
+      setStoredAddress(editingAddress);
+      toast.success("Solana address saved successfully");
+      setIsEditingSolana(false);
+    } catch (error) {
+      console.error("Error updating Solana address:", error);
+      toast.error("Failed to update Solana address");
+    }
+  };
 
   const handleGetKYC = async () => {
     if (!user?.restaurantId) {
@@ -163,6 +204,85 @@ export function Payments() {
                   )}
                 </button>
               </div>
+            )}
+          </div>
+
+          {/* Solana Address Section */}
+          <div className="bg-gradient-to-br from-gray-50 to-purple-50 p-6 rounded-xl border border-gray-200">
+            <h2 className="text-lg font-medium mb-4">Solana Deposit Address</h2>
+            
+            {isEditingSolana ? (
+              <div className="space-y-4">
+                <div className="relative">
+                  <input
+                    type={showSolanaAddress ? "text" : "password"}
+                    value={editingAddress}
+                    onChange={(e) => setEditingAddress(e.target.value)}
+                    placeholder="Enter your Solana deposit address"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSolanaAddress(!showSolanaAddress)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showSolanaAddress ? 
+                      <EyeOff className="w-5 h-5" /> : 
+                      <Eye className="w-5 h-5" />
+                    }
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveSolanaAddress}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  >
+                    Save Address
+                  </button>
+                  {storedAddress && (
+                    <button
+                      onClick={() => {
+                        setIsEditingSolana(false);
+                        setEditingAddress(storedAddress);
+                      }}
+                      className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : storedAddress ? (
+              <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
+                <div className="flex-1 break-all">
+                  {showSolanaAddress ? storedAddress : '••••••••' + storedAddress.slice(-4)}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setShowSolanaAddress(!showSolanaAddress)}
+                    className="p-2 text-gray-500 hover:text-gray-700"
+                  >
+                    {showSolanaAddress ? 
+                      <EyeOff className="w-5 h-5" /> : 
+                      <Eye className="w-5 h-5" />
+                    }
+                  </button>
+                  <button
+                    onClick={() => setIsEditingSolana(true)}
+                    className="px-4 py-2 text-sm bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
+                  >
+                    Edit
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                onClick={() => setIsEditingSolana(true)}
+                className="w-full py-3 px-4 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
+              >
+                Add Solana Address
+                <ArrowRight className="w-5 h-5" />
+              </button>
             )}
           </div>
 

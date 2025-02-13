@@ -6,7 +6,9 @@ import { clearLocalStorage } from '../utils/storage';
 interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  solanaAddress: string | null;
   setUser: (user: AuthUser | null) => void;
+  setSolanaAddress: (address: string) => void;
   logout: () => void;
 }
 
@@ -15,10 +17,12 @@ const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
+      solanaAddress: null,
       setUser: (user) => set({ user, isAuthenticated: !!user }),
+      setSolanaAddress: (address) => set({ solanaAddress: address }),
       logout: () => {
         clearLocalStorage();
-        set({ user: null, isAuthenticated: false });
+        set({ user: null, isAuthenticated: false,solanaAddress: null  });
       },
     }),
     {

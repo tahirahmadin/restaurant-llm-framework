@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import MenuManagement from "./MenuManagement";
 import { Settings } from "./Settings";
-import { Toaster, toast } from "sonner";
+import { toast } from "sonner";
 import useAuthStore from "../store/useAuthStore";
 import { getRestaurantMenu, getRestaurantProfile } from "../actions/serverActions";
 
@@ -57,64 +57,49 @@ interface RestaurantDetails {
 }
 
 export function Menu() {
-  const [showSetup, setShowSetup] = useState(true);
-  const [setupStep, setSetupStep] = useState(1);
-  const [menuUploaded, setMenuUploaded] = useState(false);
   const { user } = useAuthStore();
 
-  // Initialize menuItems state
+  // Initialize restaurantDetails from localStorage or default
+  const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(() => {
+    const saved = localStorage.getItem("restaurantDetails");
+    return saved
+      ? JSON.parse(saved)
+      : {
+          restaurantId: user?.restaurantId,
+          name: "",
+          contactNo: "",
+          address: "",
+          menuUploaded: false,
+          menu: { File: null, extractedText: "" },
+        };
+  });
+
+  // Initialize menuItems state and loading indicator
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch restaurant profile to check menuUploaded status
+  // Update restaurantDetails.menuUploaded based on profile
   useEffect(() => {
     const checkMenuStatus = async () => {
       if (!user?.restaurantId) {
         toast.error("Restaurant ID not found");
         return;
       }
-
       try {
         const profile = await getRestaurantProfile(user.restaurantId);
-        setMenuUploaded(profile.menuUploaded);
+        setRestaurantDetails((prev) => ({ ...prev, menuUploaded: profile.menuUploaded }));
       } catch (error) {
         console.error("Error fetching restaurant profile:", error);
       }
     };
-
     checkMenuStatus();
   }, [user?.restaurantId]);
-
-  // Initialize customisations from localStorage
-  const [customisations, setCustomisations] = useState<ItemCustomisation[]>(
-    () => {
-      const savedCustomisations = localStorage.getItem("customisations");
-      return savedCustomisations ? JSON.parse(savedCustomisations) : [];
-    }
-  );
-
-  // Initialize restaurantDetails from localStorage
-  const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(
-    () => {
-      const savedDetails = localStorage.getItem("restaurantDetails");
-      return savedDetails
-        ? JSON.parse(savedDetails)
-        : {
-            name: "",
-            contactNo: "",
-            address: "",
-            menuUploaded: false,
-            menu: { File: null, extractedText: "" },
-          };
-    }
-  );
 
   const fetchMenu = useCallback(async () => {
     if (!user?.restaurantId) {
       toast.error("Restaurant ID not found");
       return;
     }
-
     setIsLoading(true);
     try {
       const menu = await getRestaurantMenu(user.restaurantId);
@@ -126,7 +111,6 @@ export function Menu() {
     }
   }, [user?.restaurantId]);
 
-  // Fetch menu on component mount
   useEffect(() => {
     fetchMenu();
   }, [fetchMenu]);
@@ -147,7 +131,6 @@ export function Menu() {
   ) => {
     try {
       setMenuItems(updatedMenu);
-      setCustomisations(updatedCustomisations);
       toast.success("Menu and customisations updated successfully!");
     } catch (error) {
       console.error("Error saving menu update:", error);
@@ -163,14 +146,14 @@ export function Menu() {
     );
   }
 
-  // If menu is not uploaded, show the upload interface
-  if (!menuUploaded) {
+  // Instead of a separate state, we now check restaurantDetails.menuUploaded.
+  if (!restaurantDetails.menuUploaded) {
     return (
       <Settings
         showSetup={true}
-        setShowSetup={setShowSetup}
-        setupStep={setupStep}
-        setSetupStep={setSetupStep}
+        setShowSetup={() => {}}
+        setupStep={1}
+        setSetupStep={() => {}}
         restaurantDetails={restaurantDetails}
         setRestaurantDetails={setRestaurantDetails}
         onMenuProcessed={handleMenuData}
@@ -178,13 +161,12 @@ export function Menu() {
     );
   }
 
-  // If menu items exist, show the menu management interface
   return (
     <MenuManagement
       restaurantId={user?.restaurantId || 0}
       restaurantName={restaurantDetails.name}
       initialMenuData={menuItems}
-      initialCustomisations={customisations}
+      initialCustomisations={[]}
       onClose={() => {}}
       onUpdate={handleMenuUpdate}
     />

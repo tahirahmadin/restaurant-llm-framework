@@ -252,3 +252,29 @@ export const updateRestaurantOnlineStatus = async (
     throw error;
   }
 };
+
+export const updateSolanaDepositAddress = async (
+  restaurantId: string | number,
+  solanaAddress: string,
+  adminUsername: string
+): Promise<{ success: boolean }> => {
+  try {
+    const response = await axios.put(
+      `${apiUrl}/restaurant/updateSolanaDepositAddress`,
+      {
+        restaurantId,
+        solanaAddress,
+        adminUsername
+      }
+    );
+
+    if (response.data && !response.data.error) {
+      return { success: true };
+    }
+
+    throw new Error(response.data.error || "Failed to update Solana deposit address");
+  } catch (error) {
+    console.error("Error updating Solana deposit address:", error);
+    throw error;
+  }
+};
