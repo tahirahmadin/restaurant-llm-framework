@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Building2, Phone, MapPin, ImageIcon, User, Lock, CheckCircle2 } from 'lucide-react';
+import { Building2, Phone, MapPin, ImageIcon, User, Lock, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import useAuthStore from '../../store/useAuthStore';
 import { createRestaurant } from '../../actions/serverActions';
@@ -16,6 +16,8 @@ const steps = [
 export function Signup() {
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const setUser = useAuthStore((state) => state.setUser);
   
   // Restaurant Details
@@ -32,6 +34,9 @@ export function Signup() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  const passwordsMatch = password === confirmPassword;
+  const showPasswordError = password && confirmPassword && !passwordsMatch;
 
   const captureLocation = async () => {
     if (navigator.geolocation) {
@@ -286,13 +291,20 @@ export function Signup() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
-                type="password"
+                type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
                 placeholder="Choose a password"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
           </div>
 
@@ -303,14 +315,26 @@ export function Signup() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
-                type="password"
+                type={showConfirmPassword ? "text" : "password"}
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
                 placeholder="Confirm your password"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
             </div>
+            {showPasswordError && (
+              <p className="mt-1 text-sm text-red-500">
+                Passwords do not match
+              </p>
+            )}
           </div>
         </>
       )}
