@@ -12,8 +12,9 @@ import {
   Power,
 } from "lucide-react";
 import { toast } from "sonner";
-import { updateRestaurantOnlineStatus } from "../actions/serverActions";
+import { getRestaurantProfile, updateRestaurantOnlineStatus } from "../actions/serverActions";
 import useAuthStore from "../store/useAuthStore";
+import { validateRestaurantOnlineStatus } from '../utils/onlineValidation';
 
 interface LeftBarProps {
   isExpanded: boolean;
@@ -68,6 +69,17 @@ export function LeftBar({
     }
 
     try {
+
+      const restaurantProfile = await getRestaurantProfile(user.restaurantId);
+    
+      // Validate the profile directly since it has all required fields
+      const validation = validateRestaurantOnlineStatus(restaurantProfile);
+
+      if (!validation.isValid) {
+        toast.error(validation.message);
+        return;
+      }
+      
       const result = await updateRestaurantOnlineStatus(
         user.restaurantId,
         user.username
