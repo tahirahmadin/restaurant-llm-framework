@@ -6,6 +6,7 @@ import { createRestaurant } from '../../actions/serverActions';
 import { getAddressFromCoordinates, loadGoogleMapsScript } from '../../utils/maps';
 import { API_URL } from '../../config';
 import type { SignupData, RestaurantDetails } from '../../types/auth';
+import { authenticateAdmin } from '../../actions/serverActions';
 
 const steps = [
   { title: 'Restaurant Info', description: 'Basic restaurant details' },
@@ -18,6 +19,7 @@ export function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [usernameError, setUsernameError] = useState('');
   const setUser = useAuthStore((state) => state.setUser);
   
   // Restaurant Details
@@ -147,22 +149,42 @@ export function Signup() {
     }
 
     setIsLoading(true);
+    setUsernameError('');
 
     try {
-      const result = await createRestaurant({
+
+      console.log('Making createRestaurant request...'); // Debug log 1
+      const response = await createRestaurant({
         username,
         password,
         restaurantDetails,
       });
 
+      console.log('Response:', response);
+
+      if (response.error) {
+        console.log('Error detected:', response.result); // Debug log 3
+        setUsernameError('User with this name already exists');
+        setIsLoading(false);
+        return;
+      }
+
+      console.log('Proceeding to authentication...');
+
+      const authResult = await authenticateAdmin({
+        username,
+        password
+      });
+
       setUser({
-        id: result.userId,
-        username: result.username,
-        restaurantId: result.restaurantId,
+        id: authResult.userId,
+        username: authResult.username,
+        restaurantId: authResult.restaurantId,
       });
       toast.success('Restaurant created successfully!');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create restaurant');
+      console.error('Error in handleSubmit:', error); // Debug log 5
+      toast.error('Failed to create restaurant');
     } finally {
       setIsLoading(false);
     }
@@ -277,11 +299,19 @@ export function Signup() {
                 type="text"
                 required
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setUsernameError('');
+                }}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
                 placeholder="Choose a username"
               />
             </div>
+            {usernameError && (
+              <p className="mt-1 text-sm text-red-500">
+                {usernameError}
+              </p>
+            )}
           </div>
 
           <div>

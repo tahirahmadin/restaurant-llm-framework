@@ -104,17 +104,11 @@ export const createRestaurant = async (
       superadminPassword: signupData.password,
     });
 
-    if (response.data && !response.data.error) {
-      return {
-        userId: response.data.result.userId,
-        username: response.data.result.username,
-        restaurantId: response.data.result.restaurantId,
-      };
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data) {
+      return error.response.data;  
     }
-
-    throw new Error(response.data.error || "Failed to create restaurant");
-  } catch (error) {
-    console.error("Error creating restaurant:", error);
     throw error;
   }
 };
