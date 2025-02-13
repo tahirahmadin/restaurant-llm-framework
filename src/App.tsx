@@ -80,7 +80,8 @@ type TabType =
 
 function App() {
   const { user } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<TabType>("orders");
+  const activeTab = useAuthStore((state) => state.activeTab);
+  const setActiveTab = useAuthStore((state) => state.setActiveTab);
   const [isExpanded, setIsExpanded] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");

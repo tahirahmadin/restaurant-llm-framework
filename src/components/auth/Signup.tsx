@@ -21,6 +21,7 @@ export function Signup() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [usernameError, setUsernameError] = useState('');
   const setUser = useAuthStore((state) => state.setUser);
+  const setActiveTab = useAuthStore((state) => state.setActiveTab);
   
   // Restaurant Details
   const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>({
@@ -182,6 +183,7 @@ export function Signup() {
         restaurantId: authResult.restaurantId,
       });
       toast.success('Restaurant created successfully!');
+      setActiveTab('menu');
     } catch (error) {
       console.error('Error in handleSubmit:', error); // Debug log 5
       toast.error('Failed to create restaurant');
