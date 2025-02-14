@@ -3,28 +3,31 @@ import { Trash2, Save, Plus, ImageIcon, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import ImageUploader from "./ImageUploader";
 import { API_URL } from "../config";
-import { updateMenuItem } from "../actions/serverActions";
+import { updateMenuItem, addMenuItem,getRestaurantMenu,deleteMenuItem } from "../actions/serverActions";
 
 import useAuthStore from "../store/useAuthStore";
 
 /* ------------------------------------------------------------------
    1) Main MenuItem data (no built-in customizations)
    ------------------------------------------------------------------ */
-interface MenuItem {
-  id: number;
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  image: string;
-  spicinessLevel: number;
-  sweetnessLevel: number;
-  dietaryPreference: string[];
-  healthinessScore: number;
-  caffeineLevel: string;
-  sufficientFor: number;
-  available: boolean;
-}
+   interface MenuItem {
+    id?: number;
+    isNew?: boolean;
+    name: string;
+    description: string;
+    category: string;
+    price: number;
+    image: string;
+    spicinessLevel: number;
+    sweetnessLevel: number;
+    dietaryPreference: string[];
+    healthinessScore: number;
+    caffeineLevel: string;
+    sufficientFor: number;
+    available: boolean;
+    isCustomisable?: boolean;
+  }
+  
 
 const emptyMenuItem: MenuItem = {
   id: 0,
@@ -120,6 +123,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
   const [hasChanges, setHasChanges] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [invalidFields, setInvalidFields] = useState<string[]>([]);
 
   // We'll store the ID of the item we're about to delete (for confirmation).
   const [confirmDeleteItemId, setConfirmDeleteItemId] = useState<number | null>(
@@ -145,24 +149,27 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
   /* ------------------------------------------------------------------
      5) Generate new ID for new MenuItems
   */
-  const generateNewId = (): number => {
-    const existingIds = menuItems.map((m) => m.id);
-    return existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
-  };
+  // const generateNewId = (): number => {
+  //   const existingIds = menuItems.map((m) => m.id);
+  //   return existingIds.length > 0 ? Math.max(...existingIds) + 1 : 1;
+  // };
 
   /* ------------------------------------------------------------------
      6) CRUD for the main menu items
   */
   const addNewRow = (category = "") => {
-    const newId = generateNewId();
-    const newItem = { ...emptyMenuItem, id: newId, category };
+    const newItem = { 
+      ...emptyMenuItem, 
+      isNew: true,          // Mark it as a brand-new client-side item
+      category, 
+    };
     setMenuItems((prev) => [...prev, newItem]);
     setSelectedItem(newItem);
 
     // Create a blank customization for this item
     const newCustom: ItemCustomisation = {
       ...emptyCustomisation,
-      id: newId,
+      id: undefined,
     };
     setCustomisations((prev) => [...prev, newCustom]);
 
@@ -203,79 +210,151 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
   };
 
   // This runs when user confirms "Yes" in the modal
-  const confirmDeleteItem = () => {
-    if (confirmDeleteItemId == null) return;
-    const itemId = confirmDeleteItemId;
+  const confirmDeleteItem = async () => {
+    if (!selectedItem) return;
 
-    // 1) Delete from menuItems
-    const newItems = menuItems.filter((item) => item.id !== itemId);
-    setMenuItems(newItems);
+    try {
+        const { user } = useAuthStore.getState();
+        
+        if (!user?.username) {
+            toast.error("User not authenticated");
+            return;
+        }
 
-    // 2) Remove customisations if any
-    const newCustoms = customisations.filter((c) => c.id !== itemId);
-    setCustomisations(newCustoms);
+        await deleteMenuItem(
+            Number(restaurantId), 
+            Number(selectedItem.id), 
+            user.username
+        );
 
-    // 3) If that was the currently selected item, clear
-    if (selectedItem?.id === itemId) {
-      setSelectedItem(null);
+        const updatedMenu = await getRestaurantMenu(restaurantId);
+        
+        setMenuItems(updatedMenu);
+        setSelectedItem(null);
+        setConfirmDeleteItemId(null);
+        
+        onUpdate(updatedMenu, customisations);
+        
+        toast.success("Item deleted successfully!");
+    } catch (error: any) {
+        console.error("Error deleting item:", error);
+        toast.error(error.message || "Failed to delete item");
     }
-
-    // 4) Auto-save changes right away
-    onUpdate(newItems, newCustoms);
-    toast.success("Item deleted and changes saved!");
-
-    // 5) Close the confirmation modal
-    setConfirmDeleteItemId(null);
-  };
+};
 
   // If user clicks "No"
   const cancelDeleteItem = () => {
     setConfirmDeleteItemId(null);
   };
 
+  const validateMenuItem = (item: MenuItem): { isValid: boolean; invalidFields: string[] } => {
+    const invalidFields: string[] = [];
+  
+    if (!item.name || item.name.trim() === '') {
+      invalidFields.push('name');
+    }
+    if (!item.description || item.description.trim() === '') {
+      invalidFields.push('description');
+    }
+    if (!item.category || item.category.trim() === '') {
+      invalidFields.push('category');
+    }
+    if (item.price <= 0) {
+      invalidFields.push('price');
+    }
+    if (!item.image || item.image.trim() === '') {
+      invalidFields.push('image');
+    }
+    // if (item.spicinessLevel < 0 || item.spicinessLevel > 5) {
+    //   invalidFields.push('spicinessLevel');
+    // }
+    // if (item.sweetnessLevel < 0 || item.sweetnessLevel > 5) {
+    //   invalidFields.push('sweetnessLevel');
+    // }
+    if (!item.dietaryPreference || item.dietaryPreference.length === 0) {
+      invalidFields.push('dietaryPreference');
+    }
+    // if (item.healthinessScore < 0 || item.healthinessScore > 5) {
+    //   invalidFields.push('healthinessScore');
+    // }
+    // if (!item.caffeineLevel || item.caffeineLevel.trim() === '') {
+    //   invalidFields.push('caffeineLevel');
+    // }
+    // if (item.sufficientFor <= 0) {
+    //   invalidFields.push('sufficientFor');
+    // }
+  
+    return {
+      isValid: invalidFields.length === 0,
+      invalidFields
+    };
+  };
+
   // Manually save changes
   const handleSaveChanges = async () => {
     const { user } = useAuthStore.getState();
-
+  
     try {
       if (!selectedItem) {
         toast.error("No item selected");
         return;
       }
-
+  
       if (!user?.username) {
         toast.error("User not authenticated");
         return;
       }
 
-      // Update single menu item
+      const validation = validateMenuItem(selectedItem);
+      if (!validation.isValid) {
+        setInvalidFields(validation.invalidFields);
+        toast.error("Please fill in all item details");
+        return;
+      }
+
+      setInvalidFields([]);
+
+      const customisationForItem = customisations.find(
+        (c) => c.id === selectedItem.id
+      );
+  
+      const isCustomisable =
+        customisationForItem &&
+        customisationForItem.customisation.categories.length > 0;
+  
+      const payload = {
+        id: selectedItem.id,
+        name: selectedItem.name,
+        description: selectedItem.description,
+        category: selectedItem.category,
+        price: Number(selectedItem.price),
+        image: selectedItem.image,
+        spicinessLevel: Number(selectedItem.spicinessLevel),
+        sweetnessLevel: Number(selectedItem.sweetnessLevel),
+        dietaryPreference: selectedItem.dietaryPreference,
+        healthinessScore: Number(selectedItem.healthinessScore),
+        caffeineLevel: selectedItem.caffeineLevel,
+        sufficientFor: Number(selectedItem.sufficientFor),
+        available: Boolean(selectedItem.available),
+        isCustomisable: isCustomisable,
+        adminUsername: user.username,
+        customisation: customisationForItem
+          ? customisationForItem.customisation
+          : { categories: [] },
+      };
+  
       const updatedItem = await updateMenuItem(
         Number(restaurantId),
         selectedItem.id,
-        {
-          name: selectedItem.name,
-          description: selectedItem.description,
-          category: selectedItem.category,
-          price: Number(selectedItem.price),
-          image: selectedItem.image,
-          spicinessLevel: Number(selectedItem.spicinessLevel),
-          sweetnessLevel: Number(selectedItem.sweetnessLevel),
-          dietaryPreference: selectedItem.dietaryPreference,
-          healthinessScore: Number(selectedItem.healthinessScore),
-          caffeineLevel: selectedItem.caffeineLevel,
-          sufficientFor: Number(selectedItem.sufficientFor),
-          available: Boolean(selectedItem.available),
-
-          available: Boolean(selectedItem.available),
-          adminUsername: user.username,
-        }
+        payload
       );
-
-      // Update local state
+  
+      const mergedItem = { ...updatedItem, id: selectedItem.id };
+  
       const updatedMenuItems = menuItems.map((item) =>
-        item.id === selectedItem.id ? updatedItem : item
+        item.id === selectedItem.id ? mergedItem : item
       );
-
+  
       onUpdate(updatedMenuItems, customisations);
       toast.success("Item updated successfully!");
       setHasChanges(false);
@@ -286,6 +365,94 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
       );
     }
   };
+
+  const handleAddNewItemToServer = async () => {
+    const { user } = useAuthStore.getState();
+  
+    try {
+      if (!selectedItem) {
+        toast.error("No item selected");
+        return;
+      }
+      if (!user?.username) {
+        toast.error("User not authenticated");
+        return;
+      }
+  
+      if (!selectedItem.isNew) {
+        toast.error("This item is not marked as new.");
+        return;
+      }
+
+      const validation = validateMenuItem(selectedItem);
+      if (!validation.isValid) {
+        setInvalidFields(validation.invalidFields);
+        toast.error("Please fill in all item details");
+        return;
+      }
+
+      setInvalidFields([]);
+  
+      const { id, ...selectedItemWithoutId } = selectedItem;
+  
+      const customisationForItem = customisations.find((c) => c.id === undefined);
+  
+      const isCustomisable = Boolean(
+        customisationForItem &&
+        customisationForItem.customisation.categories &&
+        customisationForItem.customisation.categories.length > 0
+      );
+  
+      const payload = {
+        name: selectedItemWithoutId.name,
+        description: selectedItemWithoutId.description,
+        category: selectedItemWithoutId.category,
+        price: Number(selectedItemWithoutId.price),
+        image: selectedItemWithoutId.image,
+        spicinessLevel: Number(selectedItemWithoutId.spicinessLevel),
+        sweetnessLevel: Number(selectedItemWithoutId.sweetnessLevel),
+        dietaryPreference: selectedItemWithoutId.dietaryPreference,
+        healthinessScore: Number(selectedItemWithoutId.healthinessScore),
+        caffeineLevel: selectedItemWithoutId.caffeineLevel,
+        sufficientFor: Number(selectedItemWithoutId.sufficientFor),
+        available: Boolean(selectedItemWithoutId.available),
+        isCustomisable,
+        adminUsername: user.username,
+        customisation: customisationForItem
+          ? customisationForItem.customisation
+          : { categories: [] },
+      };
+  
+      console.log("Payload being sent:", payload);
+  
+      const newlyCreatedItem = await addMenuItem(restaurantId, payload);
+  
+      const updatedMenu = await getRestaurantMenu(restaurantId);
+  
+      const updatedCustoms = customisations.map((c) =>
+        c.id === undefined ? { ...c, id: newlyCreatedItem.id } : c
+      );
+  
+      setMenuItems(updatedMenu);
+      setCustomisations(updatedCustoms);
+      setSelectedItem({
+        ...selectedItemWithoutId,
+        ...newlyCreatedItem,
+        isNew: false,
+      });
+      setHasChanges(false);
+      setSelectedItem(null);
+  
+      // Notify parent
+      onUpdate(updatedMenu, updatedCustoms);
+  
+      toast.success("New item added successfully!");
+    } catch (error: any) {
+      console.error("Error adding new item:", error);
+      toast.error(error.message || "Failed to add new item");
+    }
+  };
+  
 
   // Expand/collapse categories in the sidebar
   const toggleCategory = (category: string) => {
@@ -628,6 +795,16 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                       <Trash2 className="w-5 h-5" />
                     </button>
                     {hasChanges && (
+                      selectedItem?.isNew ? (
+                        <button
+                          onClick={handleAddNewItemToServer}
+                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Add Item
+                        </button>
+                      ) : (
+                      
                       <button
                         onClick={handleSaveChanges}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors"
@@ -635,6 +812,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                         <Save className="w-4 h-4 mr-2" />
                         Save Changes
                       </button>
+                    )
                     )}
                     <button
                       onClick={() => setSelectedItem(null)}
@@ -648,104 +826,114 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
               {/* Form Fields */}
               <div className="p-6">
                 <div className="grid grid-cols-2 gap-6">
-                  {orderedColumns.map((key) => (
-                    <div
-                      key={key}
-                      className={
-                        key === "description" || key === "name"
-                          ? "col-span-2"
-                          : ""
-                      }
-                    >
-                      <label className="block mb-2 text-sm font-medium text-gray-700 capitalize">
-                        {key}
-                      </label>
+                {orderedColumns.map((key) => (
+                  <div
+                    key={key}
+                    className={
+                      key === "description" || key === "name"
+                        ? "col-span-2"
+                        : ""
+                    }
+                  >
+                    <label className="block mb-2 text-sm font-medium text-gray-700 capitalize">
+                      {key}<span className="text-red-500 ml-1">*</span>
+                    </label>
 
-                      {/* Enhanced form controls */}
-                      {key === "image" ? (
-                        <div className="space-y-2">
-                          <ImageUploader
-                            currentImage={selectedItem.image}
-                            onImageUpdate={(newUrl) =>
-                              handleFieldEdit(selectedItem.id, "image", newUrl)
-                            }
-                            restaurantId={restaurantId}
-                            itemId={selectedItem.id}
-                          />
-                        </div>
-                      ) : key === "available" ? (
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input
-                            type="checkbox"
-                            className="sr-only peer"
-                            checked={selectedItem[key] || false}
-                            onChange={(e) =>
-                              handleFieldEdit(
-                                selectedItem.id,
-                                key,
-                                e.target.checked
-                              )
-                            }
-                          />
-                          <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:bg-red-600 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                        </label>
-                      ) : key === "caffeineLevel" ? (
-                        <select
-                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                          value={selectedItem[key] || "none"}
-                          onChange={(e) =>
-                            handleFieldEdit(
-                              selectedItem.id,
-                              key,
-                              e.target.value
-                            )
+                    {/* Enhanced form controls with validation feedback */}
+                    {key === "image" ? (
+                      <div className={`space-y-2 ${invalidFields.includes(key) ? 'ring-2 ring-red-500 rounded-lg' : ''}`}>
+                        <ImageUploader
+                          currentImage={selectedItem.image}
+                          onImageUpdate={(newUrl) =>
+                            handleFieldEdit(selectedItem.id, "image", newUrl)
                           }
-                        >
-                          <option value="none">None</option>
-                          <option value="medium">Medium</option>
-                          <option value="high">High</option>
-                        </select>
-                      ) : key === "dietaryPreference" ? (
-                        <select
-                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                          multiple
-                          value={
-                            Array.isArray(selectedItem[key])
-                              ? selectedItem[key]
-                              : []
-                          }
-                          onChange={(e) => {
-                            const selectedOptions = Array.from(
-                              e.target.selectedOptions
-                            ).map((opt) => opt.value);
-                            handleFieldEdit(
-                              selectedItem.id,
-                              key,
-                              selectedOptions
-                            );
-                          }}
-                        >
-                          <option value="veg">Vegetarian</option>
-                          <option value="vegan">Vegan</option>
-                          <option value="non-veg">Non-Vegetarian</option>
-                        </select>
-                      ) : (
-                        <input
-                          type={key === "price" ? "number" : "text"}
-                          className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors"
-                          value={selectedItem[key]}
-                          onChange={(e) =>
-                            handleFieldEdit(
-                              selectedItem.id,
-                              key,
-                              e.target.value
-                            )
-                          }
-                          disabled={key === "id"}
+                          restaurantId={restaurantId}
+                          itemId={selectedItem.id}
+                          required
                         />
-                      )}
-                    </div>
-                  ))}
+                      </div>
+                    ) : key === "available" ? (
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="sr-only peer"
+                          checked={selectedItem[key] || false}
+                          onChange={(e) =>
+                            handleFieldEdit(
+                              selectedItem.id,
+                              key,
+                              e.target.checked
+                            )
+                          }
+                          required
+                        />
+                        <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:bg-red-600 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                      </label>
+                    ) : key === "caffeineLevel" ? (
+                      <select
+                        className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
+                          ${invalidFields.includes(key) ? 'border-red-500' : 'border-gray-300'}`}
+                        value={selectedItem[key] || "none"}
+                        onChange={(e) =>
+                          handleFieldEdit(
+                            selectedItem.id,
+                            key,
+                            e.target.value
+                          )
+                        }
+                        required
+                      >
+                        <option value="">Select caffeine level</option>
+                        <option value="none">None</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                      </select>
+                    ) : key === "dietaryPreference" ? (
+                      <select
+                        className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
+                          ${invalidFields.includes(key) ? 'border-red-500' : 'border-gray-300'}`}
+                        multiple
+                        value={
+                          Array.isArray(selectedItem[key])
+                            ? selectedItem[key]
+                            : []
+                        }
+                        onChange={(e) => {
+                          const selectedOptions = Array.from(
+                            e.target.selectedOptions
+                          ).map((opt) => opt.value);
+                          handleFieldEdit(
+                            selectedItem.id,
+                            key,
+                            selectedOptions
+                          );
+                        }}
+                        required
+                      >
+                        <option value="veg">Vegetarian</option>
+                        <option value="vegan">Vegan</option>
+                        <option value="non-veg">Non-Vegetarian</option>
+                      </select>
+                    ) : (
+                      <input
+                        type={key === "price" ? "number" : "text"}
+                        className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
+                          ${invalidFields.includes(key) ? 'border-red-500' : 'border-gray-300'}`}
+                        value={selectedItem[key]}
+                        onChange={(e) =>
+                          handleFieldEdit(
+                            selectedItem.id,
+                            key,
+                            e.target.value
+                          )
+                        }
+                        disabled={key === "id"}
+                        required={key !== "id"}
+                        placeholder={`Enter ${key}`}
+                      />
+                    )}
+                  </div>
+                ))}
                 </div>
 
                 {/* Customizations Section */}

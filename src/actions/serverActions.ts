@@ -3,7 +3,7 @@ import type { SignupData, LoginData } from "../types/auth";
 import type { RestaurantProfile } from "../types/restaurant";
 import type { MenuItem } from "../types/menu";
 
-let apiUrl: string = "https://payments.gobbl.ai/api";
+let apiUrl: string = "http://0.0.0.0:3000/api";
 let restaurantApiUrl: string = "https://restauranttest.gobbl.ai/api";
 
 export interface OrderItem {
@@ -186,6 +186,27 @@ export const updateRestaurantProfile = async (
   }
 };
 
+export const addMenuItem = async (
+  restaurantId: number,
+  menuItem: Partial<MenuItem> & { adminUsername: string }
+): Promise<MenuItem> => {
+  try {
+    const response = await axios.post(
+      `${apiUrl}/restaurant/addMenuItem/${restaurantId}`,
+      menuItem
+    );
+
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+
+    throw new Error(response.data.error || "Failed to add menu item");
+  } catch (error) {
+    console.error("Error adding menu item:", error);
+    throw error;
+  }
+};
+
 export const updateMenuItem = async (
   restaurantId: number,
   itemId: number,
@@ -205,6 +226,35 @@ export const updateMenuItem = async (
   } catch (error) {
     console.error("Error updating menu item:", error);
     throw error;
+  }
+};
+
+export const deleteMenuItem = async (
+  restaurantId: number,
+  itemId: number,
+  adminUsername: string
+): Promise<any> => {
+  try {
+      // Create proper payload
+      const payload = {
+          adminUsername: adminUsername
+      };
+
+      const response = await axios.delete(
+          `${apiUrl}/restaurant/deleteMenuItem/${restaurantId}/${itemId}`,
+          {
+              data: payload 
+          }
+      );
+
+      if (response.data && !response.data.error) {
+          return response.data.result;
+      }
+
+      throw new Error(response.data.error || "Failed to delete menu item");
+  } catch (error) {
+      console.error("Error deleting menu item:", error);
+      throw error;
   }
 };
 
