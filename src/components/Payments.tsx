@@ -3,22 +3,21 @@ import { toast } from "sonner";
 import { API_URL } from "../config";
 import useAuthStore from "../store/useAuthStore";
 import { Clock, CheckCircle2, ArrowRight, Wallet, Eye, EyeOff } from "lucide-react";
-import { getRestaurantProfile, updateSolanaDepositAddress } from "../actions/serverActions";
+import { getRestaurantProfile, updateBSCBaseDepositAddress } from "../actions/serverActions";
 
 export function Payments() {
-  const { user, solanaAddress: storedAddress, setSolanaAddress: setStoredAddress } = useAuthStore();
+  const { user, bscBaseAddress: storedAddress, setBSCBaseAddress: setStoredAddress } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   const [linkExpiry, setLinkExpiry] = useState<number | null>(null);
   const [editingAddress, setEditingAddress] = useState(storedAddress || "");
-  const [isEditingSolana, setIsEditingSolana] = useState(false);
-  const [showSolanaAddress, setShowSolanaAddress] = useState(false);
+  const [isEditingBSCBase, setIsEditingBSCBase] = useState(false);
+  const [showBSCBaseAddress, setShowBSCBaseAddress] = useState(false);
 
   useEffect(() => {
     setEditingAddress(storedAddress || "");
   }, [storedAddress]);
-
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -31,11 +30,11 @@ export function Payments() {
         const profile = await getRestaurantProfile(user.restaurantId);
         setPaymentsEnabled(profile.paymentsEnabled);
 
-        if (profile.solanaAddress) {
-          setSolanaAddress(profile.solanaAddress);
-          setIsEditingSolana(false);
-        }else {
-          setIsEditingSolana(true);  
+        if (profile.bscBaseAddress) {
+          setStoredAddress(profile.bscBaseAddress);
+          setIsEditingBSCBase(false);
+        } else {
+          setIsEditingBSCBase(true);
         }
       } catch (error) {
         toast.error("Failed to load restaurant profile");
@@ -47,7 +46,7 @@ export function Payments() {
     loadProfile();
   }, [user?.restaurantId, setStoredAddress]);
 
-  const handleSaveSolanaAddress = async () => {
+  const handleSaveBSCBaseAddress = async () => {
     if (!user?.restaurantId || !user?.username) {
       toast.error("Restaurant ID or admin username not found");
       return;
@@ -55,21 +54,21 @@ export function Payments() {
 
     try {
       if (!editingAddress) {
-        toast.error("Please enter a valid Solana address");
+        toast.error("Please enter a valid BSC Base address");
         return;
       }
 
-      await updateSolanaDepositAddress(
+      await updateBSCBaseDepositAddress(
         user.restaurantId,
         editingAddress,
         user.username
       );
       setStoredAddress(editingAddress);
-      toast.success("Solana address saved successfully");
-      setIsEditingSolana(false);
+      toast.success("BSC Base address saved successfully");
+      setIsEditingBSCBase(false);
     } catch (error) {
-      console.error("Error updating Solana address:", error);
-      toast.error("Failed to update Solana address");
+      console.error("Error updating BSC Base address:", error);
+      toast.error("Failed to update BSC Base address");
     }
   };
 
@@ -94,7 +93,6 @@ export function Payments() {
         throw new Error(data.error);
       }
 
-      // Store expiry time and open link
       if (data.result.expires_at) {
         setLinkExpiry(data.result.expires_at);
       }
@@ -112,13 +110,12 @@ export function Payments() {
     }
   };
 
-  // Format remaining time
   const getRemainingTime = () => {
     if (!linkExpiry) return null;
     const now = Math.floor(Date.now() / 1000);
     const remaining = linkExpiry - now;
     if (remaining <= 0) return null;
-    return Math.floor(remaining / 60); // Convert to minutes
+    return Math.floor(remaining / 60);
   };
 
   if (isLoadingProfile) {
@@ -207,26 +204,26 @@ export function Payments() {
             )}
           </div>
 
-          {/* Solana Address Section */}
+          {/* BSC Base Address Section */}
           <div className="bg-gradient-to-br from-gray-50 to-purple-50 p-6 rounded-xl border border-gray-200">
-            <h2 className="text-lg font-medium mb-4">Solana Deposit Address</h2>
+            <h2 className="text-lg font-medium mb-4">BSC/BASE Deposit Address</h2>
             
-            {isEditingSolana ? (
+            {isEditingBSCBase ? (
               <div className="space-y-4">
                 <div className="relative">
                   <input
-                    type={showSolanaAddress ? "text" : "password"}
+                    type={showBSCBaseAddress ? "text" : "password"}
                     value={editingAddress}
                     onChange={(e) => setEditingAddress(e.target.value)}
-                    placeholder="Enter your Solana deposit address"
+                    placeholder="Enter your BSC Base deposit address"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none pr-10"
                   />
                   <button
                     type="button"
-                    onClick={() => setShowSolanaAddress(!showSolanaAddress)}
+                    onClick={() => setShowBSCBaseAddress(!showBSCBaseAddress)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
-                    {showSolanaAddress ? 
+                    {showBSCBaseAddress ? 
                       <EyeOff className="w-5 h-5" /> : 
                       <Eye className="w-5 h-5" />
                     }
@@ -234,7 +231,7 @@ export function Payments() {
                 </div>
                 <div className="flex gap-2">
                   <button
-                    onClick={handleSaveSolanaAddress}
+                    onClick={handleSaveBSCBaseAddress}
                     className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                   >
                     Save Address
@@ -242,7 +239,7 @@ export function Payments() {
                   {storedAddress && (
                     <button
                       onClick={() => {
-                        setIsEditingSolana(false);
+                        setIsEditingBSCBase(false);
                         setEditingAddress(storedAddress);
                       }}
                       className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors"
@@ -255,20 +252,20 @@ export function Payments() {
             ) : storedAddress ? (
               <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex-1 break-all">
-                  {showSolanaAddress ? storedAddress : '••••••••' + storedAddress.slice(-4)}
+                  {showBSCBaseAddress ? storedAddress : '••••••••' + storedAddress.slice(-4)}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => setShowSolanaAddress(!showSolanaAddress)}
+                    onClick={() => setShowBSCBaseAddress(!showBSCBaseAddress)}
                     className="p-2 text-gray-500 hover:text-gray-700"
                   >
-                    {showSolanaAddress ? 
+                    {showBSCBaseAddress ? 
                       <EyeOff className="w-5 h-5" /> : 
                       <Eye className="w-5 h-5" />
                     }
                   </button>
                   <button
-                    onClick={() => setIsEditingSolana(true)}
+                    onClick={() => setIsEditingBSCBase(true)}
                     className="px-4 py-2 text-sm bg-purple-100 text-purple-600 rounded-lg hover:bg-purple-200 transition-colors"
                   >
                     Edit
@@ -277,10 +274,10 @@ export function Payments() {
               </div>
             ) : (
               <button
-                onClick={() => setIsEditingSolana(true)}
+                onClick={() => setIsEditingBSCBase(true)}
                 className="w-full py-3 px-4 rounded-lg bg-purple-600 text-white hover:bg-purple-700 transition-colors flex items-center justify-center gap-2"
               >
-                Add Solana Address
+                Add BSC Base Address
                 <ArrowRight className="w-5 h-5" />
               </button>
             )}

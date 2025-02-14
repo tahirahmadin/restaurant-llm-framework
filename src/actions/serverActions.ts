@@ -3,7 +3,7 @@ import type { SignupData, LoginData } from "../types/auth";
 import type { RestaurantProfile } from "../types/restaurant";
 import type { MenuItem } from "../types/menu";
 
-let apiUrl: string = "http://0.0.0.0:3000/api";
+let apiUrl: string = "https://payments.gobbl.ai/api";
 let restaurantApiUrl: string = "https://restauranttest.gobbl.ai/api";
 
 export interface OrderItem {
@@ -303,28 +303,54 @@ export const updateRestaurantOnlineStatus = async (
   }
 };
 
-export const updateSolanaDepositAddress = async (
-  restaurantId: string | number,
-  solanaAddress: string,
+// export const updateSolanaDepositAddress = async (
+//   restaurantId: string | number,
+//   solanaAddress: string,
+//   adminUsername: string
+// ): Promise<{ success: boolean }> => {
+//   try {
+//     const response = await axios.put(
+//       `${apiUrl}/restaurant/updateSolanaDepositAddress`,
+//       {
+//         restaurantId,
+//         solanaAddress,
+//         adminUsername
+//       }
+//     );
+
+//     if (response.data && !response.data.error) {
+//       return { success: true };
+//     }
+
+//     throw new Error(response.data.error || "Failed to update Solana deposit address");
+//   } catch (error) {
+//     console.error("Error updating Solana deposit address:", error);
+//     throw error;
+//   }
+// };
+
+export const updateBSCBaseDepositAddress = async (
+  restaurantId: number,
+  bscBaseAddress: string,
   adminUsername: string
 ): Promise<{ success: boolean }> => {
   try {
-    const response = await axios.put(
-      `${apiUrl}/restaurant/updateSolanaDepositAddress`,
+    const response = await axios.post(  
+      `${apiUrl}/restaurant/updateBSCBaseDepositAddress`,
       {
         restaurantId,
-        solanaAddress,
+        bscBaseAddress,
         adminUsername
       }
     );
 
-    if (response.data && !response.data.error) {
+    if (response.data && response.data.error === false) {
       return { success: true };
     }
 
-    throw new Error(response.data.error || "Failed to update Solana deposit address");
+    throw new Error("Failed to update BSC Base deposit address");
   } catch (error) {
-    console.error("Error updating Solana deposit address:", error);
+    console.error("Error updating BSC Base deposit address:", error);
     throw error;
   }
 };
