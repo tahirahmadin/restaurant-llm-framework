@@ -181,7 +181,7 @@ function App() {
   };
   return (
     <AuthWrapper>
-    <div className="flex h-screen bg-[#fff8f5] relative">
+    <div className="flex h-screen bg-[#fff8f5] overflow-hidden">
       <Toaster position="top-right" />
       <LeftBar
         isExpanded={isExpanded}
@@ -192,7 +192,7 @@ function App() {
         isOnline={restaurantDetails.isOnline}         
         setRestaurantDetails={setRestaurantDetails}
       />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col overflow-y-auto">
         {activeTab === "overview" && <Overview />}
         {activeTab === "orders" && <Orders />}
         {activeTab === "menu" && <Menu />}
