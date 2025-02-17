@@ -25,10 +25,9 @@ interface LeftBarProps {
     | "menu"
     | "profile"
     | "payments"
-    | "help"
-    | "settings";
+    | "help";
   setActiveTab: (
-    tab: "orders" | "menu" | "profile" | "payments" | "help" | "settings"
+    tab: "orders" | "menu" | "profile" | "payments" | "help" 
   ) => void;
   restaurantId?: number;
   isOnline?: boolean;
@@ -53,7 +52,6 @@ export function LeftBar({
     { id: "profile", label: "Profile", icon: User },
     { id: "payments", label: "Payments", icon: Wallet },
     { id: "help", label: "Help", icon: HelpCircle },
-    { id: "settings", label: "Settings", icon: Settings },
   ];
 
   const toggleOnlineStatus = async () => {

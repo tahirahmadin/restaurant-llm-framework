@@ -199,17 +199,6 @@ function App() {
         {activeTab === "profile" && <Profile />}
         {activeTab === "payments" && <Payments />}
         {activeTab === "help" && <Help />}
-        {activeTab === "settings" && (
-          <Settings
-            showSetup={showSetup}
-            setShowSetup={setShowSetup}
-            setupStep={setupStep}
-            setSetupStep={setSetupStep}
-            restaurantDetails={restaurantDetails}
-            setRestaurantDetails={setRestaurantDetails}
-            onMenuProcessed={handleMenuData}
-          />
-        )}
       </div>
     </div>
     </AuthWrapper>
