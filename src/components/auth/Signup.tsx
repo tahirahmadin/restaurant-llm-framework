@@ -19,6 +19,7 @@ export function Signup() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isCapturingLocation, setIsCapturingLocation] = useState(false);
   const [usernameError, setUsernameError] = useState('');
   const setUser = useAuthStore((state) => state.setUser);
   const setActiveTab = useAuthStore((state) => state.setActiveTab);
@@ -43,6 +44,7 @@ export function Signup() {
 
   const captureLocation = async () => {
     if (navigator.geolocation) {
+      setIsCapturingLocation(true);
       try {
         const position = await new Promise<GeolocationPosition>((resolve, reject) => {
           navigator.geolocation.getCurrentPosition(resolve, reject);
@@ -72,6 +74,8 @@ export function Signup() {
         } else {
           toast.error('Failed to capture location');
         }
+      } finally {
+        setIsCapturingLocation(false);
       }
     } else {
       toast.error('Geolocation is not supported by your browser');
@@ -154,7 +158,6 @@ export function Signup() {
 
     try {
 
-      console.log('Making createRestaurant request...'); // Debug log 1
       const response = await createRestaurant({
         username,
         password,
@@ -164,7 +167,6 @@ export function Signup() {
       console.log('Response:', response);
 
       if (response.error) {
-        console.log('Error detected:', response.result); // Debug log 3
         setUsernameError('User with this name already exists');
         setIsLoading(false);
         return;
@@ -185,7 +187,6 @@ export function Signup() {
       toast.success('Restaurant created successfully!');
       setActiveTab('menu');
     } catch (error) {
-      console.error('Error in handleSubmit:', error); // Debug log 5
       toast.error('Failed to create restaurant');
     } finally {
       setIsLoading(false);
@@ -275,17 +276,52 @@ export function Signup() {
               />
             </div>
           </div>
-
+           {/* Location capture button  */}
           <button
             type="button"
             onClick={captureLocation}
-            className={`w-full py-2 px-4 rounded-lg transition-colors ${
+            disabled={isCapturingLocation}
+            className={`w-full py-2 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
               restaurantDetails.location
                 ? 'bg-green-600 hover:bg-green-700 text-white'
                 : 'bg-red-600 hover:bg-red-700 text-white'
-              }`}
+              }${isCapturingLocation ? ' opacity-75 cursor-not-allowed' : ''}`}
           >
-            {restaurantDetails.location ? 'Location Captured ✓' : 'Capture Location'}
+            {isCapturingLocation ? (
+              <>
+                <svg 
+                  className="animate-spin w-4 h-4" 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  fill="none" 
+                  viewBox="0 0 24 24"
+                >
+                  <circle 
+                    className="opacity-25" 
+                    cx="12" 
+                    cy="12" 
+                    r="10" 
+                    stroke="currentColor" 
+                    strokeWidth="4"
+                  />
+                  <path 
+                    className="opacity-75" 
+                    fill="currentColor" 
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <span>Capturing...</span>
+              </>
+            ) : restaurantDetails.location ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Location Captured</span>
+              </>
+            ) : (
+              <>
+                <MapPin className="w-4 h-4" />
+                <span>Capture Location</span>
+              </>
+            )}
           </button>
         </>
       ) : (
