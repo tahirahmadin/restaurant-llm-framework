@@ -7,7 +7,6 @@ import React, {
 } from "react";
 import {
   Search,
-  Filter,
   Clock,
   ChevronRight,
   Loader2,
@@ -44,6 +43,7 @@ interface Order {
   paymentStatus: string;
   paymentMethod: string;
   customerDetails: CustomerDetails;
+  estimatedMinutes?: number;
 }
 
 interface OrderItem {
@@ -61,7 +61,7 @@ function LiveClock() {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
-  
+
   return (
     <div className="flex items-center space-x-2 p-2 bg-gradient-to-r from-red-100 to-red-200 rounded-lg shadow-md">
       <Clock className="w-5 h-5 text-red-600" />
@@ -94,6 +94,7 @@ export function Orders() {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [loading, setLoading] = useState<boolean>(false);
+  const [hasFetched, setHasFetched] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -111,42 +112,63 @@ export function Orders() {
       return;
     }
     setLoading(true);
-    const MIN_LOADING_TIME = 1000; 
+    const MIN_LOADING_TIME = 1000;
     const startTime = Date.now();
     try {
       const fetchedOrders = await fetchRestaurantOrders(user.restaurantId);
-      console.log(fetchedOrders);
+      console.log("Fetched orders:", fetchedOrders);
+      const ordersArray = Array.isArray(fetchedOrders) ? fetchedOrders : [];
 
-      const newOrders = fetchedOrders.filter(
-        (order) => !orders.some((existing) => existing._id === order._id)
-      );
-      
-      setOrders(fetchedOrders);
-      
-      if (newOrders.length > 0) {
-        toast.success(`${newOrders.length} new order${newOrders.length > 1 ? "s" : ""} received!`);
-        if (bellAudioRef.current) {
-          bellAudioRef.current
-            .play()
-            .catch((error) => console.error("Failed to play audio:", error));
+      const storedTimestampStr = sessionStorage.getItem("lastOrderTimestamp");
+      if (storedTimestampStr) {
+        const storedTimestamp = Number(storedTimestampStr);
+        const newOrders = ordersArray.filter(
+          (order) => new Date(order.createdAt).getTime() > storedTimestamp
+        );
+        if (newOrders.length > 0) {
+          toast.success(
+            `${newOrders.length} new order${
+              newOrders.length > 1 ? "s" : ""
+            } received!`
+          );
+          if (bellAudioRef.current) {
+            bellAudioRef.current
+              .play()
+              .catch((error) =>
+                console.error("Failed to play audio:", error)
+              );
+          }
         }
       }
+      if (ordersArray.length > 0) {
+        const maxTimestamp = Math.max(
+          ...ordersArray.map((o) => new Date(o.createdAt).getTime())
+        );
+        sessionStorage.setItem("lastOrderTimestamp", maxTimestamp.toString());
+      }
+      setOrders(ordersArray);
     } catch (error) {
       toast.error("Failed to load orders");
       console.error("Error loading orders:", error);
     } finally {
       const elapsed = Date.now() - startTime;
       if (elapsed < MIN_LOADING_TIME) {
-        setTimeout(() => setLoading(false), MIN_LOADING_TIME - elapsed);
+        setTimeout(() => {
+          setLoading(false);
+          setHasFetched(true);
+        }, MIN_LOADING_TIME - elapsed);
       } else {
         setLoading(false);
+        setHasFetched(true);
       }
     }
-  }, [user?.restaurantId, orders, setOrders]);
+  }, [user?.restaurantId, setOrders]);
 
-  // useEffect(() => {
-  //   loadOrders();
-  // }, [loadOrders]);
+  useEffect(() => {
+    if (user?.restaurantId) {
+      loadOrders();
+    }
+  }, [user?.restaurantId, loadOrders]);
 
   const updateOrderStatus = (order: Order, newStatus: string) => {
     setIsUpdating(true);
@@ -157,7 +179,7 @@ export function Orders() {
     )
       .then((res) => {
         if (res) {
-          console.log(res);
+          console.log("Update response:", res);
           setOrders(res);
           toast.success(`Order ${order.orderId.slice(30, 40)} ${newStatus}`);
           if (selectedOrder && selectedOrder._id === order._id) {
@@ -182,25 +204,31 @@ export function Orders() {
     setConfirmModal({ visible: true, order, newStatus: nextStatus });
   };
 
+  const orderList = Array.isArray(orders) ? orders : [];
+
   const filteredOrders = useMemo(() => {
     let filtered = searchTerm.trim()
-      ? orders.filter(
+      ? orderList.filter(
           (order) =>
             order.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
             order.customerDetails?.name
               .toLowerCase()
               .includes(searchTerm.toLowerCase())
         )
-      : orders.filter((order) => order.status === activeStatus);
+      : orderList.filter((order) => order.status === activeStatus);
 
     return [...filtered].sort((a, b) => {
       if (sortOrder === "newest") {
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        return (
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
       } else {
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        return (
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
       }
     });
-  }, [orders, searchTerm, activeStatus, sortOrder]);
+  }, [orderList, searchTerm, activeStatus, sortOrder]);
 
   return (
     <div className="min-h-screen">
@@ -216,8 +244,6 @@ export function Orders() {
                 Manage your restaurant orders
               </p>
             </div>
-            
-            {/* Render the  LiveClock */}
             <LiveClock />
           </div>
           <div className="flex items-center space-x-3 mb-6">
@@ -296,7 +322,7 @@ export function Orders() {
           )}
 
           {/* Orders List */}
-          {loading ? (
+          {loading || !hasFetched ? (
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, index) => (
                 <SkeletonOrderCard key={index} />
@@ -304,100 +330,101 @@ export function Orders() {
             </div>
           ) : (
             <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-220px)] no-scrollbar px-1">
-              <AnimatePresence>
-                {filteredOrders.map((order) => (
-                  <motion.button
-                    key={order._id}
-                    onClick={() => setSelectedOrder(order)}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                    className={`w-full p-4 rounded-xl relative overflow-hidden transition-all duration-200 hover:shadow-lg transform hover:scale-[1.01] focus:outline-none ${
-                      selectedOrder?._id === order._id
-                        ? "bg-gradient-to-r from-red-50 to-red-100 border border-red-200"
-                        : "bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-red-50 border border-gray-200"
-                    }`}
-                  >
-                    {/* Status Indicator */}
-                    <div
-                      className={`absolute left-0 top-0 bottom-0 w-1 ${
-                        order.status === "PROCESSING"
-                          ? "bg-yellow-400"
-                          : order.status === "COOKING"
-                          ? "bg-red-500"
-                          : order.status === "OUT_FOR_DELIVERY"
-                          ? "bg-blue-500"
-                          : "bg-green-500"
+              {filteredOrders.length > 0 ? (
+                <AnimatePresence>
+                  {filteredOrders.map((order) => (
+                    <motion.button
+                      key={order._id}
+                      onClick={() => setSelectedOrder(order)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className={`w-full p-4 rounded-xl relative overflow-hidden transition-all duration-200 hover:shadow-lg transform hover:scale-[1.01] focus:outline-none ${
+                        selectedOrder?._id === order._id
+                          ? "bg-gradient-to-r from-red-50 to-red-100 border border-red-200"
+                          : "bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-red-50 border border-gray-200"
                       }`}
-                    />
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold text-gray-900">
-                            #{order.orderId.slice(-8)}
-                          </span>
-                          <span className="text-sm text-gray-500">•</span>
-                          <span className="text-sm text-gray-500">
-                            {new Date(order.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
+                    >
+                      {/* Status Indicator */}
+                      <div
+                        className={`absolute left-0 top-0 bottom-0 w-1 ${
+                          order.status === "PROCESSING"
+                            ? "bg-yellow-400"
+                            : order.status === "COOKING"
+                            ? "bg-red-500"
+                            : order.status === "OUT_FOR_DELIVERY"
+                            ? "bg-blue-500"
+                            : "bg-green-500"
+                        }`}
+                      />
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">
+                              #{order.orderId.slice(-8)}
+                            </span>
+                            <span className="text-sm text-gray-500">•</span>
+                            <span className="text-sm text-gray-500">
+                              {new Date(order.createdAt).toLocaleTimeString([], {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm text-gray-500">
+                              {order.customerDetails?.name || "N/A"}
+                            </span>
+                            {order.estimatedMinutes && (
+                              <span className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                <Clock className="w-4 h-4" />
+                                {order.estimatedMinutes} mins
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm text-gray-500">
-                            {order.customerDetails?.name || "N/A"}
-                          </span>
-                          {order.estimatedMinutes && (
-                            <span className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                              <Clock className="w-4 h-4" />
-                              {order.estimatedMinutes} mins
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                            order.status === "PROCESSING"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : order.status === "COOKING"
+                              ? "bg-red-100 text-red-700"
+                              : order.status === "OUT_FOR_DELIVERY"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                        >
+                          {order.status.charAt(0).toUpperCase() +
+                            order.status.slice(1).toLowerCase()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {order.items
+                            .map((item, index) => (
+                              <span
+                                key={index}
+                                className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full"
+                              >
+                                {item.quantity}x {item.name}
+                              </span>
+                            ))
+                            .slice(0, 2)}
+                          {order.items.length > 2 && (
+                            <span className="text-sm text-gray-500">
+                              +{order.items.length - 2} more
                             </span>
                           )}
                         </div>
+                        <span className="font-semibold text-gray-900">
+                          {(order.totalAmount / 100).toFixed(2)} AED
+                        </span>
                       </div>
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          order.status === "PROCESSING"
-                            ? "bg-yellow-100 text-yellow-700"
-                            : order.status === "COOKING"
-                            ? "bg-red-100 text-red-700"
-                            : order.status === "OUT_FOR_DELIVERY"
-                            ? "bg-blue-100 text-blue-700"
-                            : "bg-green-100 text-green-700"
-                        }`}
-                      >
-                        {order.status.charAt(0).toUpperCase() +
-                          order.status.slice(1).toLowerCase()}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center pt-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {order.items
-                          .map((item, index) => (
-                            <span
-                              key={index}
-                              className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full"
-                            >
-                              {item.quantity}x {item.name}
-                            </span>
-                          ))
-                          .slice(0, 2)}
-                        {order.items.length > 2 && (
-                          <span className="text-sm text-gray-500">
-                            +{order.items.length - 2} more
-                          </span>
-                        )}
-                      </div>
-                      <span className="font-semibold text-gray-900">
-                        {(order.totalAmount / 100).toFixed(2)} AED
-                      </span>
-                    </div>
-                  </motion.button>
-                ))}
-              </AnimatePresence>
-              {filteredOrders.length === 0 && (
+                    </motion.button>
+                  ))}
+                </AnimatePresence>
+              ) : (
                 <div className="text-center py-8 text-gray-500">
                   No orders found
                 </div>
@@ -508,7 +535,6 @@ export function Orders() {
                     </div>
                   ))}
                 </div>
-
                 {/* Order Summary */}
                 <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition-all duration-200">
                   {selectedOrder.status === "COOKING" && (
