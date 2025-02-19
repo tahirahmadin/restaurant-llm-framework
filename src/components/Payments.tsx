@@ -14,35 +14,37 @@ export function Payments() {
   const [editingAddress, setEditingAddress] = useState(storedAddress || "");
   const [isEditingBSCBase, setIsEditingBSCBase] = useState(false);
   const [showBSCBaseAddress, setShowBSCBaseAddress] = useState(false);
+  const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
 
   useEffect(() => {
     setEditingAddress(storedAddress || "");
   }, [storedAddress]);
 
+  // Function to load restaurant profile
+  const loadProfile = async () => {
+    if (!user?.restaurantId) {
+      toast.error("Restaurant ID not found");
+      return;
+    }
+    try {
+      const profile = await getRestaurantProfile(user.restaurantId);
+      setPaymentsEnabled(profile.paymentsEnabled);
+      setStripeAccountId(profile.stripeAccountId || null);
+
+      if (profile.bscBaseAddress) {
+        setStoredAddress(profile.bscBaseAddress);
+        setIsEditingBSCBase(false);
+      } else {
+        setIsEditingBSCBase(true);
+      }
+    } catch (error) {
+      toast.error("Failed to load restaurant profile");
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
   useEffect(() => {
-    const loadProfile = async () => {
-      if (!user?.restaurantId) {
-        toast.error("Restaurant ID not found");
-        return;
-      }
-
-      try {
-        const profile = await getRestaurantProfile(user.restaurantId);
-        setPaymentsEnabled(profile.paymentsEnabled);
-
-        if (profile.bscBaseAddress) {
-          setStoredAddress(profile.bscBaseAddress);
-          setIsEditingBSCBase(false);
-        } else {
-          setIsEditingBSCBase(true);
-        }
-      } catch (error) {
-        toast.error("Failed to load restaurant profile");
-      } finally {
-        setIsLoadingProfile(false);
-      }
-    };
-
     loadProfile();
   }, [user?.restaurantId, setStoredAddress]);
 
@@ -110,6 +112,10 @@ export function Payments() {
     }
   };
 
+  const handleRedirectToStripe = () => {
+    window.open("https://dashboard.stripe.com/", "_blank");
+  };
+
   const getRemainingTime = () => {
     if (!linkExpiry) return null;
     const now = Math.floor(Date.now() / 1000);
@@ -145,24 +151,46 @@ export function Payments() {
             <h2 className="text-lg font-medium mb-4">Payment KYC Status</h2>
 
             {paymentsEnabled ? (
-              <div className="flex items-center gap-4 bg-green-50 p-4 rounded-lg border border-green-100">
-                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center gap-4 bg-green-50 p-4 rounded-lg border border-green-100">
+                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-green-700">
+                      KYC Verification Complete
+                    </p>
+                    <p className="text-sm text-green-600 mt-1">
+                      Your restaurant is ready to accept payments
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-green-700">
-                    KYC Verification Complete
-                  </p>
-                  <p className="text-sm text-green-600 mt-1">
-                    Your restaurant is ready to accept payments
-                  </p>
-                </div>
+                <button
+                  onClick={handleRedirectToStripe}
+                  className="w-full py-3 px-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2"
+                >
+                  Go to Stripe Dashboard
+                </button>
+              </div>
+            ) : stripeAccountId ? (
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  Your KYC process is already in progress. Please check your Stripe Dashboard for more details.
+                </p>
+                <button
+                  onClick={handleRedirectToStripe}
+                  className="w-full py-3 px-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2"
+                >
+                  Go to Stripe Dashboard
+                </button>
+                <p className="text-xs text-gray-500">
+                  Please refresh the page to check for any updates.
+                </p>
               </div>
             ) : (
               <div className="space-y-4">
                 <p className="text-gray-600">
-                  Complete your KYC verification to start accepting payments
-                  through our platform.
+                  Complete your KYC verification to start accepting payments through our platform.
                 </p>
 
                 {linkExpiry && getRemainingTime() ? (
@@ -176,23 +204,12 @@ export function Payments() {
 
                 <button
                   onClick={handleGetKYC}
-                  disabled={isLoading || paymentsEnabled}
+                  disabled={isLoading}
                   className={`w-full py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2
-                    ${
-                      isLoading
-                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                        : paymentsEnabled
-                        ? "bg-green-100 text-green-600 cursor-not-allowed"
-                        : "bg-red-600 text-white hover:bg-red-700"
-                    }`}
+                    ${isLoading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"}`}
                 >
                   {isLoading ? (
                     "Processing..."
-                  ) : paymentsEnabled ? (
-                    <>
-                      <CheckCircle2 className="w-5 h-5" />
-                      KYC Verified
-                    </>
                   ) : (
                     <>
                       Start KYC Process
@@ -223,10 +240,11 @@ export function Payments() {
                     onClick={() => setShowBSCBaseAddress(!showBSCBaseAddress)}
                     className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
                   >
-                    {showBSCBaseAddress ? 
-                      <EyeOff className="w-5 h-5" /> : 
+                    {showBSCBaseAddress ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
                       <Eye className="w-5 h-5" />
-                    }
+                    )}
                   </button>
                 </div>
                 <div className="flex gap-2">
@@ -252,17 +270,18 @@ export function Payments() {
             ) : storedAddress ? (
               <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex-1 break-all">
-                  {showBSCBaseAddress ? storedAddress : '••••••••' + storedAddress.slice(-4)}
+                  {showBSCBaseAddress ? storedAddress : "••••••••" + storedAddress.slice(-4)}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowBSCBaseAddress(!showBSCBaseAddress)}
                     className="p-2 text-gray-500 hover:text-gray-700"
                   >
-                    {showBSCBaseAddress ? 
-                      <EyeOff className="w-5 h-5" /> : 
+                    {showBSCBaseAddress ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
                       <Eye className="w-5 h-5" />
-                    }
+                    )}
                   </button>
                   <button
                     onClick={() => setIsEditingBSCBase(true)}
@@ -289,15 +308,13 @@ export function Payments() {
               <div className="bg-white p-6 rounded-xl border border-gray-200">
                 <h3 className="font-medium mb-2">Payment Methods</h3>
                 <p className="text-sm text-gray-600">
-                  You can accept payments via credit cards, debit cards, and
-                  digital wallets.
+                  You can accept payments via credit cards, debit cards, and digital wallets.
                 </p>
               </div>
               <div className="bg-white p-6 rounded-xl border border-gray-200">
                 <h3 className="font-medium mb-2">Settlement Timeline</h3>
                 <p className="text-sm text-gray-600">
-                  Payments are settled within 2-3 business days to your
-                  registered bank account.
+                  Payments are settled within 2-3 business days to your registered bank account.
                 </p>
               </div>
             </div>
