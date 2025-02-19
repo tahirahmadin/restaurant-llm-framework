@@ -3,8 +3,7 @@ import type { SignupData, LoginData } from "../types/auth";
 import type { RestaurantProfile } from "../types/restaurant";
 import type { MenuItem } from "../types/menu";
 
-let apiUrl: string = "https://payments.gobbl.ai/api";
-let restaurantApiUrl: string = "https://restauranttest.gobbl.ai/api";
+let apiUrl: string = import.meta.env.VITE_PUBLIC_BACKEND_API_URL;
 
 export interface OrderItem {
   name: string;
@@ -107,7 +106,7 @@ export const createRestaurant = async (
     return response.data;
   } catch (error: any) {
     if (error.response?.data) {
-      return error.response.data;  
+      return error.response.data;
     }
     throw error;
   }
@@ -235,26 +234,26 @@ export const deleteMenuItem = async (
   adminUsername: string
 ): Promise<any> => {
   try {
-      // Create proper payload
-      const payload = {
-          adminUsername: adminUsername
-      };
+    // Create proper payload
+    const payload = {
+      adminUsername: adminUsername,
+    };
 
-      const response = await axios.delete(
-          `${apiUrl}/restaurant/deleteMenuItem/${restaurantId}/${itemId}`,
-          {
-              data: payload 
-          }
-      );
-
-      if (response.data && !response.data.error) {
-          return response.data.result;
+    const response = await axios.delete(
+      `${apiUrl}/restaurant/deleteMenuItem/${restaurantId}/${itemId}`,
+      {
+        data: payload,
       }
+    );
 
-      throw new Error(response.data.error || "Failed to delete menu item");
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+
+    throw new Error(response.data.error || "Failed to delete menu item");
   } catch (error) {
-      console.error("Error deleting menu item:", error);
-      throw error;
+    console.error("Error deleting menu item:", error);
+    throw error;
   }
 };
 
@@ -335,12 +334,12 @@ export const updateBSCBaseDepositAddress = async (
   adminUsername: string
 ): Promise<{ success: boolean }> => {
   try {
-    const response = await axios.post(  
+    const response = await axios.post(
       `${apiUrl}/restaurant/updateBSCBaseDepositAddress`,
       {
         restaurantId,
         bscBaseAddress,
-        adminUsername
+        adminUsername,
       }
     );
 
