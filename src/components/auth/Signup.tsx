@@ -190,7 +190,7 @@ export function Signup() {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      const response = await fetch(`${API_URL}/api/upload/uploadImage`, {
+      const response = await fetch(`${API_URL}/upload/uploadImage`, {
         method: 'POST',
         body: formData,
       });

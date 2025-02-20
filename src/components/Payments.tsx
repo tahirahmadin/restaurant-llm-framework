@@ -97,7 +97,7 @@ export function Payments() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${API_URL}/api/payment/getRestaurantOnboardingLink?restaurantId=${user.restaurantId}`
+        `${API_URL}/payment/getRestaurantOnboardingLink?restaurantId=${user.restaurantId}`
       );
 
       if (!response.ok) {

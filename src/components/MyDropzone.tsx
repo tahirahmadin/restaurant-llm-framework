@@ -249,7 +249,7 @@ Rules:
       setProcessingStep("Generating menu summary...");
       const menuSummary = await generateMenuSummary(finalResult);
       setUploadProgress(85);
-      const menuUpdateResponse = await fetch(`${API_URL}/api/restaurant/updateMenu/${restaurantId}`, {
+      const menuUpdateResponse = await fetch(`${API_URL}/restaurant/updateMenu/${restaurantId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -263,7 +263,7 @@ Rules:
       if (!menuUpdateResponse.ok) {
         throw new Error("Failed to update menu items");
       }
-      const restaurantUpdateResponse = await fetch(`${API_URL}/api/restaurant/updateRestaurant/${restaurantId}`, {
+      const restaurantUpdateResponse = await fetch(`${API_URL}/restaurant/updateRestaurant/${restaurantId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
