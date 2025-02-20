@@ -14,12 +14,12 @@
 }
 
 body {
-  @apply bg-[#f9fafb] font-['Inter',sans-serif];
+  @apply bg-[#F1F1F1] font-['Inter',sans-serif];
 }
 
 .sidebar {
   @apply border-r border-gray-200 flex flex-col;
-  background: #fef2f2;
+  background: #ffffff;
 }
 
 .chat-item {
@@ -81,6 +81,6 @@ body {
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }

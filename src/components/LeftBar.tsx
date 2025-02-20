@@ -12,22 +12,19 @@ import {
   Power,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getRestaurantProfile, updateRestaurantOnlineStatus } from "../actions/serverActions";
+import {
+  getRestaurantProfile,
+  updateRestaurantOnlineStatus,
+} from "../actions/serverActions";
 import useAuthStore from "../store/useAuthStore";
-import { validateRestaurantOnlineStatus } from '../utils/onlineValidation';
+import { validateRestaurantOnlineStatus } from "../utils/onlineValidation";
 
 interface LeftBarProps {
   isExpanded: boolean;
   setIsExpanded: (value: boolean) => void;
-  activeTab:
-    | "overview"
-    | "orders"
-    | "menu"
-    | "profile"
-    | "payments"
-    | "help";
+  activeTab: "overview" | "orders" | "menu" | "profile" | "payments" | "help";
   setActiveTab: (
-    tab: "orders" | "menu" | "profile" | "payments" | "help" 
+    tab: "orders" | "menu" | "profile" | "payments" | "help"
   ) => void;
   restaurantId?: number;
   isOnline?: boolean;
@@ -67,9 +64,8 @@ export function LeftBar({
     }
 
     try {
-
       const restaurantProfile = await getRestaurantProfile(user.restaurantId);
-    
+
       // Validate the profile directly since it has all required fields
       const validation = validateRestaurantOnlineStatus(restaurantProfile);
 
@@ -77,7 +73,7 @@ export function LeftBar({
         toast.error(validation.message);
         return;
       }
-      
+
       const result = await updateRestaurantOnlineStatus(
         user.restaurantId,
         user.username
@@ -103,7 +99,7 @@ export function LeftBar({
       <div
         className={`${
           isExpanded ? "w-64" : "w-16"
-        } sidebar transition-all duration-300 flex flex-col`}
+        } sidebar transition-all duration-300 flex flex-col bg-white`}
       >
         {/* Logo */}
         <div className="p-4 border-b border-gray-200 flex items-center">
@@ -114,7 +110,6 @@ export function LeftBar({
           >
             {isExpanded ? (
               <>
-                <span className="text-2xl">🍽️</span>
                 <span>gobbl</span>
               </>
             ) : (
@@ -127,18 +122,14 @@ export function LeftBar({
         <div className="p-4 border-b border-gray-200">
           <button
             onClick={toggleOnlineStatus}
-            className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
+            className={`w-[80%] flex items-center px-3 py-2 rounded-lg transition-colors ${
               isOnline
                 ? "bg-green-100 text-green-700"
                 : "bg-gray-100 text-gray-700"
             }`}
           >
             <Power className={`w-5 h-5 ${isExpanded ? "mr-3" : ""}`} />
-            {isExpanded && (
-              <span>
-                {isOnline ? "Restaurant Online" : "Restaurant Offline"}
-              </span>
-            )}
+            {isExpanded && <span>{isOnline ? "Online" : "Online"}</span>}
           </button>
         </div>
 
@@ -151,9 +142,9 @@ export function LeftBar({
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center px-3 py-2 rounded-lg transition-colors ${
+                  className={`w-[80%] flex items-center px-3 py-2 rounded-lg transition-colors ${
                     activeTab === item.id
-                      ? "bg-red-600 text-white"
+                      ? "bg-[#DA3642] text-white"
                       : "text-gray-700 hover:bg-gray-100"
                   }`}
                 >

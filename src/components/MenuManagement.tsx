@@ -3,31 +3,35 @@ import { Trash2, Save, Plus, ImageIcon, X, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import ImageUploader from "./ImageUploader";
 import { API_URL } from "../config";
-import { updateMenuItem, addMenuItem,getRestaurantMenu,deleteMenuItem } from "../actions/serverActions";
+import {
+  updateMenuItem,
+  addMenuItem,
+  getRestaurantMenu,
+  deleteMenuItem,
+} from "../actions/serverActions";
 
 import useAuthStore from "../store/useAuthStore";
 
 /* ------------------------------------------------------------------
    1) Main MenuItem data (no built-in customizations)
    ------------------------------------------------------------------ */
-   interface MenuItem {
-    id?: number;
-    isNew?: boolean;
-    name: string;
-    description: string;
-    category: string;
-    price: number;
-    image: string;
-    spicinessLevel: number;
-    sweetnessLevel: number;
-    dietaryPreference: string[];
-    healthinessScore: number;
-    caffeineLevel: string;
-    sufficientFor: number;
-    available: boolean;
-    isCustomisable?: boolean;
-  }
-  
+interface MenuItem {
+  id?: number;
+  isNew?: boolean;
+  name: string;
+  description: string;
+  category: string;
+  price: number;
+  image: string;
+  spicinessLevel: number;
+  sweetnessLevel: number;
+  dietaryPreference: string[];
+  healthinessScore: number;
+  caffeineLevel: string;
+  sufficientFor: number;
+  available: boolean;
+  isCustomisable?: boolean;
+}
 
 const emptyMenuItem: MenuItem = {
   id: 0,
@@ -158,10 +162,10 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
      6) CRUD for the main menu items
   */
   const addNewRow = (category = "") => {
-    const newItem = { 
-      ...emptyMenuItem, 
-      isNew: true,          // Mark it as a brand-new client-side item
-      category, 
+    const newItem = {
+      ...emptyMenuItem,
+      isNew: true, // Mark it as a brand-new client-side item
+      category,
     };
     setMenuItems((prev) => [...prev, newItem]);
     setSelectedItem(newItem);
@@ -214,56 +218,58 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
     if (!selectedItem) return;
 
     try {
-        const { user } = useAuthStore.getState();
-        
-        if (!user?.username) {
-            toast.error("User not authenticated");
-            return;
-        }
+      const { user } = useAuthStore.getState();
 
-        await deleteMenuItem(
-            Number(restaurantId), 
-            Number(selectedItem.id), 
-            user.username
-        );
+      if (!user?.username) {
+        toast.error("User not authenticated");
+        return;
+      }
 
-        const updatedMenu = await getRestaurantMenu(restaurantId);
-        
-        setMenuItems(updatedMenu);
-        setSelectedItem(null);
-        setConfirmDeleteItemId(null);
-        
-        onUpdate(updatedMenu, customisations);
-        
-        toast.success("Item deleted successfully!");
+      await deleteMenuItem(
+        Number(restaurantId),
+        Number(selectedItem.id),
+        user.username
+      );
+
+      const updatedMenu = await getRestaurantMenu(restaurantId);
+
+      setMenuItems(updatedMenu);
+      setSelectedItem(null);
+      setConfirmDeleteItemId(null);
+
+      onUpdate(updatedMenu, customisations);
+
+      toast.success("Item deleted successfully!");
     } catch (error: any) {
-        console.error("Error deleting item:", error);
-        toast.error(error.message || "Failed to delete item");
+      console.error("Error deleting item:", error);
+      toast.error(error.message || "Failed to delete item");
     }
-};
+  };
 
   // If user clicks "No"
   const cancelDeleteItem = () => {
     setConfirmDeleteItemId(null);
   };
 
-  const validateMenuItem = (item: MenuItem): { isValid: boolean; invalidFields: string[] } => {
+  const validateMenuItem = (
+    item: MenuItem
+  ): { isValid: boolean; invalidFields: string[] } => {
     const invalidFields: string[] = [];
-  
-    if (!item.name || item.name.trim() === '') {
-      invalidFields.push('name');
+
+    if (!item.name || item.name.trim() === "") {
+      invalidFields.push("name");
     }
-    if (!item.description || item.description.trim() === '') {
-      invalidFields.push('description');
+    if (!item.description || item.description.trim() === "") {
+      invalidFields.push("description");
     }
-    if (!item.category || item.category.trim() === '') {
-      invalidFields.push('category');
+    if (!item.category || item.category.trim() === "") {
+      invalidFields.push("category");
     }
     if (item.price <= 0) {
-      invalidFields.push('price');
+      invalidFields.push("price");
     }
-    if (!item.image || item.image.trim() === '') {
-      invalidFields.push('image');
+    if (!item.image || item.image.trim() === "") {
+      invalidFields.push("image");
     }
     // if (item.spicinessLevel < 0 || item.spicinessLevel > 5) {
     //   invalidFields.push('spicinessLevel');
@@ -272,7 +278,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
     //   invalidFields.push('sweetnessLevel');
     // }
     if (!item.dietaryPreference || item.dietaryPreference.length === 0) {
-      invalidFields.push('dietaryPreference');
+      invalidFields.push("dietaryPreference");
     }
     // if (item.healthinessScore < 0 || item.healthinessScore > 5) {
     //   invalidFields.push('healthinessScore');
@@ -283,23 +289,23 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
     // if (item.sufficientFor <= 0) {
     //   invalidFields.push('sufficientFor');
     // }
-  
+
     return {
       isValid: invalidFields.length === 0,
-      invalidFields
+      invalidFields,
     };
   };
 
   // Manually save changes
   const handleSaveChanges = async () => {
     const { user } = useAuthStore.getState();
-  
+
     try {
       if (!selectedItem) {
         toast.error("No item selected");
         return;
       }
-  
+
       if (!user?.username) {
         toast.error("User not authenticated");
         return;
@@ -317,11 +323,11 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
       const customisationForItem = customisations.find(
         (c) => c.id === selectedItem.id
       );
-  
+
       const isCustomisable =
         customisationForItem &&
         customisationForItem.customisation.categories.length > 0;
-  
+
       const payload = {
         id: selectedItem.id,
         name: selectedItem.name,
@@ -342,19 +348,19 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
           ? customisationForItem.customisation
           : { categories: [] },
       };
-  
+
       const updatedItem = await updateMenuItem(
         Number(restaurantId),
         selectedItem.id,
         payload
       );
-  
+
       const mergedItem = { ...updatedItem, id: selectedItem.id };
-  
+
       const updatedMenuItems = menuItems.map((item) =>
         item.id === selectedItem.id ? mergedItem : item
       );
-  
+
       onUpdate(updatedMenuItems, customisations);
       toast.success("Item updated successfully!");
       setHasChanges(false);
@@ -368,7 +374,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
 
   const handleAddNewItemToServer = async () => {
     const { user } = useAuthStore.getState();
-  
+
     try {
       if (!selectedItem) {
         toast.error("No item selected");
@@ -378,7 +384,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
         toast.error("User not authenticated");
         return;
       }
-  
+
       if (!selectedItem.isNew) {
         toast.error("This item is not marked as new.");
         return;
@@ -392,17 +398,19 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
       }
 
       setInvalidFields([]);
-  
+
       const { id, ...selectedItemWithoutId } = selectedItem;
-  
-      const customisationForItem = customisations.find((c) => c.id === undefined);
-  
+
+      const customisationForItem = customisations.find(
+        (c) => c.id === undefined
+      );
+
       const isCustomisable = Boolean(
         customisationForItem &&
-        customisationForItem.customisation.categories &&
-        customisationForItem.customisation.categories.length > 0
+          customisationForItem.customisation.categories &&
+          customisationForItem.customisation.categories.length > 0
       );
-  
+
       const payload = {
         name: selectedItemWithoutId.name,
         description: selectedItemWithoutId.description,
@@ -422,17 +430,17 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
           ? customisationForItem.customisation
           : { categories: [] },
       };
-  
+
       console.log("Payload being sent:", payload);
-  
+
       const newlyCreatedItem = await addMenuItem(restaurantId, payload);
-  
+
       const updatedMenu = await getRestaurantMenu(restaurantId);
-  
+
       const updatedCustoms = customisations.map((c) =>
         c.id === undefined ? { ...c, id: newlyCreatedItem.id } : c
       );
-  
+
       setMenuItems(updatedMenu);
       setCustomisations(updatedCustoms);
       setSelectedItem({
@@ -442,17 +450,16 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
       });
       setHasChanges(false);
       setSelectedItem(null);
-  
+
       // Notify parent
       onUpdate(updatedMenu, updatedCustoms);
-  
+
       toast.success("New item added successfully!");
     } catch (error: any) {
       console.error("Error adding new item:", error);
       toast.error(error.message || "Failed to add new item");
     }
   };
-  
 
   // Expand/collapse categories in the sidebar
   const toggleCategory = (category: string) => {
@@ -640,14 +647,14 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
      8) Render
   */
   return (
-    <div className="h-screen bg-gray-50 relative">
+    <div className=" bg-[#F1F1F1] relative">
       <div className="flex-1 flex flex-col">
-        <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+        <div className="p-6 bg-white border-b border-gray-200 flex justify-between items-center">
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">
-              {restaurantName}
+            <h1 className="text-2xl font-semibold text-gray-900">
+              {restaurantName} Dunkin Donuts
             </h1>
-            <p className="text-sm text-gray-500 mt-1">Menu Management</p>
+            <p className="text-sm text-gray-500">Menu Management</p>
           </div>
           <div className="flex items-center gap-4">
             <button
@@ -657,24 +664,18 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
               <Plus className="w-4 h-4 mr-2" />
               Add New Item
             </button>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            >
-              <X className="w-5 h-5 text-gray-500" />
-            </button>
           </div>
         </div>
 
         {/* Categories Bar */}
-        <div className="border-b border-gray-200 bg-white sticky top-0 z-10 overflow-x-auto">
+        <div className="border-b border-gray-200  sticky top-0 z-10 overflow-x-auto">
           <div className="px-6 py-3 flex gap-2 min-w-max">
             <button
               onClick={() => setSelectedCategory("All")}
-              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              className={` px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
                 selectedCategory === "All"
                   ? "bg-red-600 text-white"
-                  : "text-gray-600 hover:bg-gray-100"
+                  : "bg-white text-gray-600 hover:bg-gray-100"
               }`}
             >
               ALL
@@ -692,7 +693,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                   className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
                     selectedCategory === category
                       ? "bg-red-600 text-white"
-                      : "text-gray-600 hover:bg-gray-100"
+                      : "from-gray-50 to-red-50 bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
                   {category || "Uncategorized"}
@@ -712,7 +713,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
               {(selectedCategory === "All"
                 ? menuItems
                 : groupedItems[selectedCategory] || []
@@ -720,52 +721,49 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                 <div
                   key={item.id}
                   onClick={() => setSelectedItem(item)}
-                  className={`bg-white rounded-xl shadow-sm overflow-hidden cursor-pointer transition-all hover:shadow-md ${
+                  className={`p-3 bg-white rounded-xl shadow-sm overflow-hidden cursor-pointer transition-all hover:shadow-md ${
                     selectedItem?.id === item.id ? "ring-2 ring-red-600" : ""
                   }`}
                 >
-                  <div className="h-48 bg-gray-100 relative">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <ImageIcon className="w-12 h-12 text-gray-400" />
-                      </div>
-                    )}
-                    {!item.available && (
-                      <span className="absolute top-2 right-2 px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
-                        Unavailable
-                      </span>
-                    )}
-                    <span className="absolute top-2 left-2 px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
-                      {item.category || "Uncategorized"}
-                    </span>
+                  <div className="flex items-start h-[130px] w-full">
+                    <div className="rounded-lg w-[30%]">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="rounded-lg w-full h-full"
+                        />
+                      ) : (
+                        <div className="w-32 h-32 flex items-center justify-center bg-gray-300 rounded-lg">
+                          <ImageIcon className="w-24 h-24 text-gray-100" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="ml-2 w-[70%]">
+                      <h3 className="font-[900] text-gray-900">
+                        {item.name || "New Item"}
+                      </h3>
+                      <p className="text-sm text-gray-500 mt-1 line-clamp-3">
+                        {item.description}
+                      </p>
+                    </div>
                   </div>
-                  <div className="p-4">
-                    <h3 className="font-medium text-gray-900">
-                      {item.name || "New Item"}
-                    </h3>
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">
-                      {item.description}
-                    </p>
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="font-medium text-red-600">
-                        ${item.price}
+
+                  <div className="flex items-center justify-between">
+                    <div className="font-[800] text-[#da3642] text-lg">
+                      {item.price} AED
+                    </div>
+                    <div className="bg-gray-100 relative">
+                      {!item.available && (
+                        <span className="px-2 py-1 bg-red-100 text-red-600 text-xs rounded-full">
+                          Unavailable
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className=" px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        {item.category || "Uncategorized"}
                       </span>
-                      <div className="flex items-center gap-2">
-                        {item.dietaryPreference?.map((pref) => (
-                          <span
-                            key={pref}
-                            className="text-xs px-2 py-1 bg-gray-100 rounded-full"
-                          >
-                            {pref}
-                          </span>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -781,30 +779,29 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
           <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="bg-white rounded-xl shadow-sm">
               {/* Header */}
-                <div className="p-4 border-b border-gray-200 flex justify-between items-center relative">
-                  <div>
-                    <h2 className="text-xl font-semibold text-gray-900">
-                      Edit Item
-                    </h2>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <button
-                      onClick={() => handleDeleteIconClick(selectedItem.id)}
-                      className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                    {hasChanges && (
-                      selectedItem?.isNew ? (
-                        <button
-                          onClick={handleAddNewItemToServer}
-                          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Item
-                        </button>
-                      ) : (
-                      
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center relative">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">
+                    Edit Item
+                  </h2>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <button
+                    onClick={() => handleDeleteIconClick(selectedItem.id)}
+                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                  {hasChanges &&
+                    (selectedItem?.isNew ? (
+                      <button
+                        onClick={handleAddNewItemToServer}
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Add Item
+                      </button>
+                    ) : (
                       <button
                         onClick={handleSaveChanges}
                         className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors"
@@ -812,128 +809,146 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                         <Save className="w-4 h-4 mr-2" />
                         Save Changes
                       </button>
-                    )
-                    )}
-                    <button
-                      onClick={() => setSelectedItem(null)}
-                      className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-                    >
-                      <X className="w-5 h-5 text-gray-500" />
-                    </button>
-                  </div>
+                    ))}
+                  <button
+                    onClick={() => setSelectedItem(null)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
                 </div>
+              </div>
 
               {/* Form Fields */}
               <div className="p-6">
                 <div className="grid grid-cols-2 gap-6">
-                {orderedColumns.map((key) => (
-                  <div
-                    key={key}
-                    className={
-                      key === "description" || key === "name"
-                        ? "col-span-2"
-                        : ""
-                    }
-                  >
-                    <label className="block mb-2 text-sm font-medium text-gray-700 capitalize">
-                      {key}<span className="text-red-500 ml-1">*</span>
-                    </label>
+                  {orderedColumns.map((key) => (
+                    <div
+                      key={key}
+                      className={
+                        key === "description" || key === "name"
+                          ? "col-span-2"
+                          : ""
+                      }
+                    >
+                      <label className="block mb-2 text-sm font-medium text-gray-700 capitalize">
+                        {key}
+                        <span className="text-red-500 ml-1">*</span>
+                      </label>
 
-                    {/* Enhanced form controls with validation feedback */}
-                    {key === "image" ? (
-                      <div className={`space-y-2 ${invalidFields.includes(key) ? 'ring-2 ring-red-500 rounded-lg' : ''}`}>
-                        <ImageUploader
-                          currentImage={selectedItem.image}
-                          onImageUpdate={(newUrl) =>
-                            handleFieldEdit(selectedItem.id, "image", newUrl)
-                          }
-                          restaurantId={restaurantId}
-                          itemId={selectedItem.id}
-                          required
-                        />
-                      </div>
-                    ) : key === "available" ? (
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={selectedItem[key] || false}
+                      {/* Enhanced form controls with validation feedback */}
+                      {key === "image" ? (
+                        <div
+                          className={`space-y-2 ${
+                            invalidFields.includes(key)
+                              ? "ring-2 ring-red-500 rounded-lg"
+                              : ""
+                          }`}
+                        >
+                          <ImageUploader
+                            currentImage={selectedItem.image}
+                            onImageUpdate={(newUrl) =>
+                              handleFieldEdit(selectedItem.id, "image", newUrl)
+                            }
+                            restaurantId={restaurantId}
+                            itemId={selectedItem.id}
+                            required
+                          />
+                        </div>
+                      ) : key === "available" ? (
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={selectedItem[key] || false}
+                            onChange={(e) =>
+                              handleFieldEdit(
+                                selectedItem.id,
+                                key,
+                                e.target.checked
+                              )
+                            }
+                            required
+                          />
+                          <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:bg-red-600 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                        </label>
+                      ) : key === "caffeineLevel" ? (
+                        <select
+                          className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
+                          ${
+                            invalidFields.includes(key)
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          value={selectedItem[key] || "none"}
                           onChange={(e) =>
                             handleFieldEdit(
                               selectedItem.id,
                               key,
-                              e.target.checked
+                              e.target.value
                             )
                           }
                           required
+                        >
+                          <option value="">Select caffeine level</option>
+                          <option value="none">None</option>
+                          <option value="medium">Medium</option>
+                          <option value="high">High</option>
+                        </select>
+                      ) : key === "dietaryPreference" ? (
+                        <select
+                          className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
+                          ${
+                            invalidFields.includes(key)
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          multiple
+                          value={
+                            Array.isArray(selectedItem[key])
+                              ? selectedItem[key]
+                              : []
+                          }
+                          onChange={(e) => {
+                            const selectedOptions = Array.from(
+                              e.target.selectedOptions
+                            ).map((opt) => opt.value);
+                            handleFieldEdit(
+                              selectedItem.id,
+                              key,
+                              selectedOptions
+                            );
+                          }}
+                          required
+                        >
+                          <option value="veg">Vegetarian</option>
+                          <option value="vegan">Vegan</option>
+                          <option value="non-veg">Non-Vegetarian</option>
+                        </select>
+                      ) : (
+                        <input
+                          type={key === "price" ? "number" : "text"}
+                          className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
+                          ${
+                            invalidFields.includes(key)
+                              ? "border-red-500"
+                              : "border-gray-300"
+                          }`}
+                          value={selectedItem[key]}
+                          onChange={(e) =>
+                            handleFieldEdit(
+                              selectedItem.id,
+                              key,
+                              e.target.value
+                            )
+                          }
+                          disabled={key === "id"}
+                          required={key !== "id"}
+                          placeholder={`Enter ${key}`}
                         />
-                        <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:bg-red-600 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
-                      </label>
-                    ) : key === "caffeineLevel" ? (
-                      <select
-                        className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
-                          ${invalidFields.includes(key) ? 'border-red-500' : 'border-gray-300'}`}
-                        value={selectedItem[key] || "none"}
-                        onChange={(e) =>
-                          handleFieldEdit(
-                            selectedItem.id,
-                            key,
-                            e.target.value
-                          )
-                        }
-                        required
-                      >
-                        <option value="">Select caffeine level</option>
-                        <option value="none">None</option>
-                        <option value="medium">Medium</option>
-                        <option value="high">High</option>
-                      </select>
-                    ) : key === "dietaryPreference" ? (
-                      <select
-                        className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
-                          ${invalidFields.includes(key) ? 'border-red-500' : 'border-gray-300'}`}
-                        multiple
-                        value={
-                          Array.isArray(selectedItem[key])
-                            ? selectedItem[key]
-                            : []
-                        }
-                        onChange={(e) => {
-                          const selectedOptions = Array.from(
-                            e.target.selectedOptions
-                          ).map((opt) => opt.value);
-                          handleFieldEdit(
-                            selectedItem.id,
-                            key,
-                            selectedOptions
-                          );
-                        }}
-                        required
-                      >
-                        <option value="veg">Vegetarian</option>
-                        <option value="vegan">Vegan</option>
-                        <option value="non-veg">Non-Vegetarian</option>
-                      </select>
-                    ) : (
-                      <input
-                        type={key === "price" ? "number" : "text"}
-                        className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent transition-colors
-                          ${invalidFields.includes(key) ? 'border-red-500' : 'border-gray-300'}`}
-                        value={selectedItem[key]}
-                        onChange={(e) =>
-                          handleFieldEdit(
-                            selectedItem.id,
-                            key,
-                            e.target.value
-                          )
-                        }
-                        disabled={key === "id"}
-                        required={key !== "id"}
-                        placeholder={`Enter ${key}`}
-                      />
-                    )}
-                  </div>
-                ))}
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 {/* Customizations Section */}
@@ -963,26 +978,36 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                                 )
                               }
                             />
-                            </div>
-                        <div className="flex items-center space-x-2 mt-2 sm:mt-0">
-                          <label>Min Qty</label>
-                          <input
-                            type="text"
-                            className="border rounded px-2 py-1 w-16"
-                            value={category.minQuantity}
-                            onChange={e =>
-                              handleCategoryFieldChange(selectedItem.id, index, "minQuantity", e.target.value)
-                            }
-                          />
-                          <label>Max Qty</label>
-                          <input
-                            type="text"
-                            className="border rounded px-2 py-1 w-16"
-                            value={category.maxQuantity}
-                            onChange={e =>
-                              handleCategoryFieldChange(selectedItem.id, index, "maxQuantity", e.target.value)
-                            }
-                          />
+                          </div>
+                          <div className="flex items-center space-x-2 mt-2 sm:mt-0">
+                            <label>Min Qty</label>
+                            <input
+                              type="text"
+                              className="border rounded px-2 py-1 w-16"
+                              value={category.minQuantity}
+                              onChange={(e) =>
+                                handleCategoryFieldChange(
+                                  selectedItem.id,
+                                  index,
+                                  "minQuantity",
+                                  e.target.value
+                                )
+                              }
+                            />
+                            <label>Max Qty</label>
+                            <input
+                              type="text"
+                              className="border rounded px-2 py-1 w-16"
+                              value={category.maxQuantity}
+                              onChange={(e) =>
+                                handleCategoryFieldChange(
+                                  selectedItem.id,
+                                  index,
+                                  "maxQuantity",
+                                  e.target.value
+                                )
+                              }
+                            />
                             <button
                               onClick={() =>
                                 removeCategory(selectedItem.id, index)

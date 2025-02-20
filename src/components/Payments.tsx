@@ -2,11 +2,25 @@ import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { API_URL } from "../config";
 import useAuthStore from "../store/useAuthStore";
-import { Clock, CheckCircle2, ArrowRight, Wallet, Eye, EyeOff } from "lucide-react";
-import { getRestaurantProfile, updateBSCBaseDepositAddress } from "../actions/serverActions";
+import {
+  Clock,
+  CheckCircle2,
+  ArrowRight,
+  Wallet,
+  Eye,
+  EyeOff,
+} from "lucide-react";
+import {
+  getRestaurantProfile,
+  updateBSCBaseDepositAddress,
+} from "../actions/serverActions";
 
 export function Payments() {
-  const { user, bscBaseAddress: storedAddress, setBSCBaseAddress: setStoredAddress } = useAuthStore();
+  const {
+    user,
+    bscBaseAddress: storedAddress,
+    setBSCBaseAddress: setStoredAddress,
+  } = useAuthStore();
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [paymentsEnabled, setPaymentsEnabled] = useState(false);
@@ -133,22 +147,31 @@ export function Payments() {
   }
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-semibold">Payments</h1>
-            <p className="text-gray-500 mt-1">Manage your payment settings</p>
-          </div>
-          <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center">
-            <Wallet className="w-6 h-6 text-red-600" />
-          </div>
+    <div className="p-6 max-w-4xl">
+      <div className="flex justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Payment setup
+          </h1>
+          <p className="text-sm text-gray-500">Manage your payment settings</p>
         </div>
-
+      </div>
+      <div className="bg-white rounded-xl shadow-sm p-6 mt-3">
         <div className="space-y-6">
           {/* KYC Status Card */}
           <div className="bg-gradient-to-br from-gray-50 to-red-50 p-6 rounded-xl border border-gray-200">
-            <h2 className="text-lg font-medium mb-4">Payment KYC Status</h2>
+            <div className="flex items-center mb-3 p-2">
+              <div className="bg-red-200 rounded-lg p-1">
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/2534/2534204.png"
+                  className="h-12 w-12"
+                />
+              </div>
+              <div className="ml-3">
+                <h2 className="text-xl font-medium ">Know your customer</h2>
+                <p className="text-sm text-orange-500 ">• Pending</p>
+              </div>
+            </div>
 
             {paymentsEnabled ? (
               <div className="flex flex-col gap-4">
@@ -167,7 +190,7 @@ export function Payments() {
                 </div>
                 <button
                   onClick={handleRedirectToStripe}
-                  className="w-full py-3 px-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 rounded-lg bg-[#000000] text-white hover:bg-red-700 flex items-center justify-center gap-2"
                 >
                   Go to Stripe Dashboard
                 </button>
@@ -175,11 +198,12 @@ export function Payments() {
             ) : stripeAccountId ? (
               <div className="space-y-4">
                 <p className="text-gray-600">
-                  Your KYC process is already in progress. Please check your Stripe Dashboard for more details.
+                  Your KYC process is already in progress. Please check your
+                  Stripe Dashboard for more details.
                 </p>
                 <button
                   onClick={handleRedirectToStripe}
-                  className="w-full py-3 px-4 rounded-lg bg-blue-600 text-white hover:bg-blue-700 flex items-center justify-center gap-2"
+                  className="w-full py-3 px-4 rounded-lg bg-[#000000] text-white hover:bg-red-700 flex items-center justify-center gap-2"
                 >
                   Go to Stripe Dashboard
                 </button>
@@ -190,7 +214,8 @@ export function Payments() {
             ) : (
               <div className="space-y-4">
                 <p className="text-gray-600">
-                  Complete your KYC verification to start accepting payments through our platform.
+                  Complete your KYC verification to start accepting payments
+                  through our platform.
                 </p>
 
                 {linkExpiry && getRemainingTime() ? (
@@ -206,7 +231,11 @@ export function Payments() {
                   onClick={handleGetKYC}
                   disabled={isLoading}
                   className={`w-full py-3 px-4 rounded-lg transition-all flex items-center justify-center gap-2
-                    ${isLoading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-600 text-white hover:bg-red-700"}`}
+                    ${
+                      isLoading
+                        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                        : "bg-red-600 text-white hover:bg-red-700"
+                    }`}
                 >
                   {isLoading ? (
                     "Processing..."
@@ -222,9 +251,21 @@ export function Payments() {
           </div>
 
           {/* BSC Base Address Section */}
-          <div className="bg-gradient-to-br from-gray-50 to-purple-50 p-6 rounded-xl border border-gray-200">
-            <h2 className="text-lg font-medium mb-4">BSC/BASE Deposit Address</h2>
-            
+          <div className="bg-gradient-to-br from-gray-50 to-red-50 p-6 rounded-xl border border-gray-200">
+            <div className="flex items-center mb-3 p-2">
+              <div className="bg-red-200 rounded-lg p-1">
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/10002/10002627.png"
+                  className="h-12 w-12 "
+                />
+              </div>
+              <div className="ml-3">
+                <h2 className="text-xl font-medium ">
+                  BSC/BASE Deposit Address
+                </h2>
+              </div>
+            </div>
+
             {isEditingBSCBase ? (
               <div className="space-y-4">
                 <div className="relative">
@@ -233,7 +274,7 @@ export function Payments() {
                     value={editingAddress}
                     onChange={(e) => setEditingAddress(e.target.value)}
                     placeholder="Enter your BSC Base deposit address"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none pr-10"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-200 focus:border-purple-500 outline-none pr-10"
                   />
                   <button
                     type="button"
@@ -250,7 +291,7 @@ export function Payments() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSaveBSCBaseAddress}
-                    className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                    className="px-4 py-2 bg-[#000000] text-white rounded-lg hover:bg-red-700 transition-colors"
                   >
                     Save Address
                   </button>
@@ -270,7 +311,9 @@ export function Payments() {
             ) : storedAddress ? (
               <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-gray-200">
                 <div className="flex-1 break-all">
-                  {showBSCBaseAddress ? storedAddress : "••••••••" + storedAddress.slice(-4)}
+                  {showBSCBaseAddress
+                    ? storedAddress
+                    : "••••••••" + storedAddress.slice(-4)}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -308,13 +351,15 @@ export function Payments() {
               <div className="bg-white p-6 rounded-xl border border-gray-200">
                 <h3 className="font-medium mb-2">Payment Methods</h3>
                 <p className="text-sm text-gray-600">
-                  You can accept payments via credit cards, debit cards, and digital wallets.
+                  You can accept payments via credit cards, debit cards, and
+                  digital wallets.
                 </p>
               </div>
               <div className="bg-white p-6 rounded-xl border border-gray-200">
                 <h3 className="font-medium mb-2">Settlement Timeline</h3>
                 <p className="text-sm text-gray-600">
-                  Payments are settled within 2-3 business days to your registered bank account.
+                  Payments are settled within 2-3 business days to your
+                  registered bank account.
                 </p>
               </div>
             </div>

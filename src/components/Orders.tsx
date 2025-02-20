@@ -134,9 +134,7 @@ export function Orders() {
           if (bellAudioRef.current) {
             bellAudioRef.current
               .play()
-              .catch((error) =>
-                console.error("Failed to play audio:", error)
-              );
+              .catch((error) => console.error("Failed to play audio:", error));
           }
         }
       }
@@ -186,7 +184,11 @@ export function Orders() {
             setSelectedOrder({ ...order, status: newStatus });
           }
           setActiveStatus(
-            newStatus as "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
+            newStatus as
+              | "PROCESSING"
+              | "COOKING"
+              | "OUT_FOR_DELIVERY"
+              | "COMPLETED"
           );
         }
       })
@@ -234,7 +236,7 @@ export function Orders() {
     <div className="min-h-screen">
       <div className="flex flex-col md:flex-row h-full bg-gray-100">
         {/* Sidebar / Header Controls */}
-        <div className="w-full md:w-1/2 p-6 border-r border-gray-200 bg-white">
+        <div className="w-[70%] p-6 border-r border-gray-200 bg-white">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 transition-all duration-300">
@@ -366,10 +368,13 @@ export function Orders() {
                             </span>
                             <span className="text-sm text-gray-500">•</span>
                             <span className="text-sm text-gray-500">
-                              {new Date(order.createdAt).toLocaleTimeString([], {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {new Date(order.createdAt).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
                             </span>
                           </div>
                           <div className="flex flex-col">
@@ -434,7 +439,7 @@ export function Orders() {
         </div>
 
         {/* Right Panel - Order Details */}
-        <div className="w-full md:w-1/2 p-6 bg-gray-50 mt-6 md:mt-0 relative">
+        <div className="w-[30%] p-6 bg-gray-50 mt-6 md:mt-0 relative">
           <AnimatePresence mode="wait">
             {selectedOrder ? (
               <motion.div
@@ -524,7 +529,8 @@ export function Orders() {
                               {item.description}
                             </p>
                             <p className="text-sm text-gray-500 mt-1">
-                              AED {item.price.toFixed(2)} × {item.quantity} items
+                              AED {item.price.toFixed(2)} × {item.quantity}{" "}
+                              items
                             </p>
                           </div>
                           <span className="font-medium text-red-600">
@@ -583,7 +589,9 @@ export function Orders() {
                           : "COMPLETED";
                       handleStatusChangeRequest(selectedOrder, nextStatus);
                     }}
-                    disabled={selectedOrder.status === "COMPLETED" || isUpdating}
+                    disabled={
+                      selectedOrder.status === "COMPLETED" || isUpdating
+                    }
                   >
                     {isUpdating && (
                       <Loader2 className="w-5 h-5 animate-spin mr-2" />
