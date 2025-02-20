@@ -16,7 +16,8 @@ export function Profile() {
   const [profileData, setProfileData] = useState<RestaurantProfile | null>(
     null
   );
-  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string>("");
+  const [imageKey, setImageKey] = useState(0);
 
   useEffect(() => {
     const loadProfile = async () => {
@@ -28,6 +29,7 @@ export function Profile() {
       try {
         const data = await getRestaurantProfile(user.restaurantId);
         setProfileData(data);
+        setCurrentImageUrl(data.image || "");
       } catch (error) {
         toast.error("Failed to load restaurant profile");
       } finally {
@@ -38,12 +40,30 @@ export function Profile() {
     loadProfile();
   }, [user?.restaurantId]);
 
+  const fetchWithCache = async (imageUrl: string) => {
+    try {
+      const cache = await caches.open('image-cache');
+      await cache.delete(imageUrl);
+      const response = await fetch(imageUrl, { cache: 'reload' });
+      await cache.put(imageUrl, response.clone());
+      return response;
+    } catch (error) {
+      console.error('Cache operation failed:', error);
+      return fetch(imageUrl);
+    }
+  };
+
   const handleImageUpload = async (file: File) => {
     try {
+      toast.loading('Uploading image...');
       const formData = new FormData();
       formData.append("file", file);
       formData.append("restaurantId", user?.restaurantId?.toString() || "");
       formData.append("itemId", "0");
+
+      const tempUrl = URL.createObjectURL(file);
+      setCurrentImageUrl(tempUrl);
+      setImageKey(prev => prev + 1);
 
       const response = await fetch(`${API_URL}/upload/uploadImage`, {
         method: "POST",
@@ -53,12 +73,24 @@ export function Profile() {
       const data = await response.json();
       if (!data.success) throw new Error(data.error || "Upload failed");
 
+      // Force fetch new image and clear cache
+      await fetchWithCache(data.fileUrl);
+      
+      const imageUrlWithTimestamp = `${data.fileUrl}?t=${Date.now()}`;
+      setCurrentImageUrl(imageUrlWithTimestamp);
       setProfileData((prev) =>
-        prev ? { ...prev, image: data.fileUrl } : null
+        prev ? { ...prev, image: imageUrlWithTimestamp } : null
       );
+      setImageKey(prev => prev + 1);
+
+      URL.revokeObjectURL(tempUrl);
+      toast.dismiss();
       toast.success("Image uploaded successfully!");
     } catch (error) {
+      console.error('Upload error:', error);
+      toast.dismiss();
       toast.error("Failed to upload image");
+      setCurrentImageUrl(profileData?.image || "");
     }
   };
 
@@ -82,6 +114,7 @@ export function Profile() {
       });
 
       setProfileData(updatedProfile);
+      setCurrentImageUrl(updatedProfile.image || "");
       setIsEditing(false);
       toast.success("Profile updated successfully!");
     } catch (error) {
@@ -128,11 +161,18 @@ export function Profile() {
           {/* Profile Image */}
           <div className="flex items-center gap-6">
             <div className="relative w-full">
-              <div className="flex justify-center items-center w-full rounded-xl">
+              <div className="flex justify-center items-center w-full rounded-xl h-[200px]">
                 <img
-                  src={profileData.image || "https://via.placeholder.com/150"}
-                  alt="Centered"
-                  className="w-full max-h-[200px] object-cover rounded-xl"
+                  key={imageKey}
+                  src={`${currentImageUrl || "https://via.placeholder.com/150"}?v=${imageKey}`}
+                  alt="Restaurant Profile"
+                  className="w-full h-full object-cover rounded-xl"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.src = "https://via.placeholder.com/150";
+                    console.error('Image load error');
+                  }}
+                  onLoad={() => console.log('Image loaded successfully')}
                 />
               </div>
               {isEditing && (
