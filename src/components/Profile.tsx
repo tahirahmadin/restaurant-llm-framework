@@ -45,7 +45,7 @@ export function Profile() {
       formData.append("restaurantId", user?.restaurantId?.toString() || "");
       formData.append("itemId", "0");
 
-      const response = await fetch(`${API_URL}/api/upload/uploadImage`, {
+      const response = await fetch(`${API_URL}/upload/uploadImage`, {
         method: "POST",
         body: formData,
       });

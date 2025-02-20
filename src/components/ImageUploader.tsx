@@ -27,7 +27,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({
       formData.append('restaurantId', restaurantId.toString());
       formData.append('itemId', itemId.toString());
 
-      const response = await fetch(`${API_URL}/api/upload/uploadImage`, {  // Updated endpoint
+      const response = await fetch(`${API_URL}/upload/uploadImage`, {  // Updated endpoint
         method: 'POST',
         body: formData,
       });
