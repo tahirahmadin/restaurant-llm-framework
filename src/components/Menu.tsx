@@ -6,6 +6,7 @@ import useAuthStore from "../store/useAuthStore";
 import {
   getRestaurantMenu,
   getRestaurantProfile,
+  type RestaurantProfile,
 } from "../actions/serverActions";
 
 interface MenuItem {
@@ -62,6 +63,10 @@ interface RestaurantDetails {
 export function Menu() {
   const { user } = useAuthStore();
 
+  // Add state for restaurant profile
+  const [restaurantProfile, setRestaurantProfile] =
+    useState<RestaurantProfile | null>(null);
+
   // Initialize restaurantDetails from localStorage or default
   const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(
     () => {
@@ -82,6 +87,7 @@ export function Menu() {
   // Initialize menuItems state and loading indicator
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
   // Update restaurantDetails.menuUploaded based on profile
   useEffect(() => {
@@ -92,10 +98,12 @@ export function Menu() {
       }
       try {
         const profile = await getRestaurantProfile(user.restaurantId);
+        setRestaurantProfile(profile);
         setRestaurantDetails((prev) => ({
           ...prev,
           menuUploaded: profile.menuUploaded,
         }));
+        setIsLoadingProfile(false);
       } catch (error) {
         console.error("Error fetching restaurant profile:", error);
       }
@@ -146,7 +154,7 @@ export function Menu() {
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingProfile) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-gray-500">Loading menu...</div>
@@ -172,7 +180,7 @@ export function Menu() {
   return (
     <MenuManagement
       restaurantId={user?.restaurantId || 0}
-      restaurantName={restaurantDetails.name}
+      restaurantName={restaurantProfile?.name || ""}
       initialMenuData={menuItems}
       initialCustomisations={[]}
       onClose={() => {}}

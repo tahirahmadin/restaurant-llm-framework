@@ -652,7 +652,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
         <div className="p-6 bg-white border-b border-gray-200 flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-semibold text-gray-900">
-              {restaurantName} Dunkin Donuts
+              {restaurantName}
             </h1>
             <p className="text-sm text-gray-500">Menu Management</p>
           </div>
@@ -668,7 +668,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
         </div>
 
         {/* Categories Bar */}
-        <div className="border-b border-gray-200  sticky top-0 z-10 overflow-x-auto">
+        <div className="border-b border-gray-200  sticky top-0 z-10 overflow-x-auto bg-[#F1F1F1]">
           <div className="px-6 py-3 flex gap-2 min-w-max">
             <button
               onClick={() => setSelectedCategory("All")}
