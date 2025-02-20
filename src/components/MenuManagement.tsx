@@ -672,13 +672,22 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
           <div className="px-6 py-3 flex gap-2 min-w-max">
             <button
               onClick={() => setSelectedCategory("All")}
-              className={` px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+              className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors flex items-center gap-2 ${
                 selectedCategory === "All"
                   ? "bg-red-600 text-white"
                   : "bg-white text-gray-600 hover:bg-gray-100"
               }`}
             >
-              ALL
+              <span>ALL</span>
+              <span
+                className={`px-2 py-0.5 text-xs rounded-full ${
+                  selectedCategory === "All"
+                    ? "bg-white bg-opacity-20 text-white"
+                    : "bg-gray-100 text-gray-600"
+                }`}
+              >
+                {menuItems.length}
+              </span>
             </button>
             {[
               ...new Set(
@@ -696,7 +705,18 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                       : "from-gray-50 to-red-50 bg-white text-gray-600 hover:bg-gray-100"
                   }`}
                 >
-                  {category || "Uncategorized"}
+                  <span className="flex items-center gap-2">
+                    {category || "Uncategorized"}
+                    <span
+                      className={`px-2 py-0.5 text-xs rounded-full ${
+                        selectedCategory === category
+                          ? "bg-white bg-opacity-20 text-white"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {groupedItems[category]?.length || 0}
+                    </span>
+                  </span>
                 </button>
               ))}
           </div>

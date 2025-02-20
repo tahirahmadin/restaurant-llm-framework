@@ -3,7 +3,10 @@ import MenuManagement from "./MenuManagement";
 import { Settings } from "./Settings";
 import { toast } from "sonner";
 import useAuthStore from "../store/useAuthStore";
-import { getRestaurantMenu, getRestaurantProfile } from "../actions/serverActions";
+import {
+  getRestaurantMenu,
+  getRestaurantProfile,
+} from "../actions/serverActions";
 
 interface MenuItem {
   id: number;
@@ -60,19 +63,21 @@ export function Menu() {
   const { user } = useAuthStore();
 
   // Initialize restaurantDetails from localStorage or default
-  const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(() => {
-    const saved = localStorage.getItem("restaurantDetails");
-    return saved
-      ? JSON.parse(saved)
-      : {
-          restaurantId: user?.restaurantId,
-          name: "",
-          contactNo: "",
-          address: "",
-          menuUploaded: false,
-          menu: { File: null, extractedText: "" },
-        };
-  });
+  const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(
+    () => {
+      const saved = localStorage.getItem("restaurantDetails");
+      return saved
+        ? JSON.parse(saved)
+        : {
+            restaurantId: user?.restaurantId,
+            name: "",
+            contactNo: "",
+            address: "",
+            menuUploaded: false,
+            menu: { File: null, extractedText: "" },
+          };
+    }
+  );
 
   // Initialize menuItems state and loading indicator
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
@@ -87,7 +92,10 @@ export function Menu() {
       }
       try {
         const profile = await getRestaurantProfile(user.restaurantId);
-        setRestaurantDetails((prev) => ({ ...prev, menuUploaded: profile.menuUploaded }));
+        setRestaurantDetails((prev) => ({
+          ...prev,
+          menuUploaded: profile.menuUploaded,
+        }));
       } catch (error) {
         console.error("Error fetching restaurant profile:", error);
       }

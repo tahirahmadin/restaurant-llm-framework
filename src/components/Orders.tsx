@@ -57,20 +57,27 @@ interface OrderItem {
 
 function LiveClock() {
   const [now, setNow] = useState(new Date());
+
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
   return (
-    <div className="flex items-center space-x-2 p-2 bg-gradient-to-r from-red-100 to-red-200 rounded-lg shadow-md">
-      <Clock className="w-5 h-5 text-red-600" />
-      <div className="text-red-800 font-semibold text-sm">
-        {now.toLocaleDateString()} |{" "}
+    <div className="flex flex-col items-center justify-center p-2 bg-gray-900 text-white rounded-lg shadow-lg w-48">
+      <div className="text-3xl font-bold font-mono">
         {now.toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
+        })}
+      </div>
+      <div className="text-xs text-gray-400">
+        {now.toLocaleDateString(undefined, {
+          weekday: "long",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
         })}
       </div>
     </div>
@@ -86,15 +93,11 @@ const SkeletonOrderCard = () => (
 
 export function Orders() {
   const { user } = useAuthStore();
-  const [activeStatus, setActiveStatus] = useState<
-    "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED"
-  >("PROCESSING");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [estimatedMinutes, setEstimatedMinutes] = useState<number>(15);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [sortOrder, setSortOrder] = useState<"newest" | "oldest">("newest");
   const [loading, setLoading] = useState<boolean>(false);
-  const [hasFetched, setHasFetched] = useState<boolean>(false);
   const [isUpdating, setIsUpdating] = useState<boolean>(false);
 
   const [confirmModal, setConfirmModal] = useState<{
@@ -116,7 +119,6 @@ export function Orders() {
     const startTime = Date.now();
     try {
       const fetchedOrders = await fetchRestaurantOrders(user.restaurantId);
-      console.log("Fetched orders:", fetchedOrders);
       const ordersArray = Array.isArray(fetchedOrders) ? fetchedOrders : [];
 
       const storedTimestampStr = sessionStorage.getItem("lastOrderTimestamp");
@@ -153,11 +155,9 @@ export function Orders() {
       if (elapsed < MIN_LOADING_TIME) {
         setTimeout(() => {
           setLoading(false);
-          setHasFetched(true);
         }, MIN_LOADING_TIME - elapsed);
       } else {
         setLoading(false);
-        setHasFetched(true);
       }
     }
   }, [user?.restaurantId, setOrders]);
@@ -168,38 +168,32 @@ export function Orders() {
     }
   }, [user?.restaurantId, loadOrders]);
 
-  const updateOrderStatus = (order: Order, newStatus: string) => {
+  const updateOrderStatus = async (order: Order, newStatus: string) => {
     setIsUpdating(true);
-    updateOrderStatusAPI(
-      order.orderId,
-      newStatus as "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED",
-      estimatedMinutes
-    )
-      .then((res) => {
-        if (res) {
-          console.log("Update response:", res);
-          setOrders(res);
-          toast.success(`Order ${order.orderId.slice(30, 40)} ${newStatus}`);
-          if (selectedOrder && selectedOrder._id === order._id) {
-            setSelectedOrder({ ...order, status: newStatus });
-          }
-          setActiveStatus(
-            newStatus as
-              | "PROCESSING"
-              | "COOKING"
-              | "OUT_FOR_DELIVERY"
-              | "COMPLETED"
-          );
+    try {
+      const res = await updateOrderStatusAPI(
+        order.orderId,
+        newStatus as
+          | "PROCESSING"
+          | "COOKING"
+          | "OUT_FOR_DELIVERY"
+          | "COMPLETED",
+        estimatedMinutes
+      );
+      if (res) {
+        setOrders(res);
+        toast.success(`Order ${order.orderId.slice(-8)} ${newStatus}`);
+        if (selectedOrder && selectedOrder._id === order._id) {
+          setSelectedOrder({ ...order, status: newStatus });
         }
-      })
-      .catch((error) => {
-        toast.error("Failed to update order status");
-        console.error("Error updating order status:", error);
-      })
-      .finally(() => {
-        setIsUpdating(false);
-        setConfirmModal({ visible: false, order: null, newStatus: null });
-      });
+      }
+    } catch (error) {
+      toast.error("Failed to update order status");
+      console.error("Error updating order status:", error);
+    } finally {
+      setIsUpdating(false);
+      setConfirmModal({ visible: false, order: null, newStatus: null });
+    }
   };
 
   const handleStatusChangeRequest = (order: Order, nextStatus: string) => {
@@ -217,7 +211,7 @@ export function Orders() {
               .toLowerCase()
               .includes(searchTerm.toLowerCase())
         )
-      : orderList.filter((order) => order.status === activeStatus);
+      : orderList;
 
     return [...filtered].sort((a, b) => {
       if (sortOrder === "newest") {
@@ -230,25 +224,33 @@ export function Orders() {
         );
       }
     });
-  }, [orderList, searchTerm, activeStatus, sortOrder]);
+  }, [orderList, searchTerm, sortOrder]);
+
+  const processingOrders = filteredOrders.filter(
+    (order) => order.status === "PROCESSING"
+  );
+  const cookingOrders = filteredOrders.filter(
+    (order) => order.status === "COOKING"
+  );
+  const deliveryOrders = filteredOrders.filter(
+    (order) => order.status === "OUT_FOR_DELIVERY"
+  );
 
   return (
-    <div className="min-h-screen">
-      <div className="flex flex-col md:flex-row h-full bg-gray-100">
-        {/* Sidebar / Header Controls */}
-        <div className="w-[70%] p-6 border-r border-gray-200 bg-white">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 transition-all duration-300">
-                Orders
-              </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage your restaurant orders
-              </p>
-            </div>
-            <LiveClock />
+    <div className="min-h-screen bg-gray-100">
+      <div className="p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Orders</h1>
+            <p className="text-sm text-gray-500 mt-1">
+              Manage your restaurant orders
+            </p>
           </div>
-          <div className="flex items-center space-x-3 mb-6">
+          <LiveClock />
+        </div>
+        {/* Header Controls */}
+        <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+          <div className="flex items-center space-x-3">
             {/* Search Input */}
             <div className="relative flex-1">
               <input
@@ -256,85 +258,58 @@ export function Orders() {
                 placeholder="Search orders..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-8 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 transition-colors duration-200 bg-white text-gray-900"
+                className="w-full pl-10 pr-8 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 transition-colors"
               />
-              <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 focus:outline-none"
-                  aria-label="Clear search"
-                  title="Clear search"
                 >
                   <X className="w-4 h-4 text-gray-400 hover:text-gray-600" />
                 </button>
               )}
             </div>
-
-            {/* Manual Refresh Button */}
-            <button
-              onClick={loadOrders}
-              disabled={loading}
-              className="p-2 rounded-full hover:bg-gray-100 transition-colors disabled:opacity-50 focus:outline-none"
-              aria-label="Refresh orders"
-              title="Refresh orders"
-            >
-              <RefreshCcw className="w-5 h-5 text-gray-600" />
-            </button>
             {/* Sort Dropdown */}
             <select
               value={sortOrder}
               onChange={(e) =>
                 setSortOrder(e.target.value as "newest" | "oldest")
               }
-              className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 transition-colors bg-white text-gray-900"
+              className="p-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-600 transition-colors"
             >
               <option value="newest">Newest First</option>
               <option value="oldest">Oldest First</option>
             </select>
+            {/* Manual Refresh Button */}
+            <button
+              onClick={loadOrders}
+              disabled={loading}
+              className="p-2 rounded-full bg-[#DA3642] hover:bg-gray-100 transition-colors disabled:opacity-50"
+              title="Refresh orders"
+            >
+              <RefreshCcw className="w-5 h-5 text-gray-100" />
+            </button>
           </div>
+        </div>
 
-          {/* Status Tabs or Search Results Label */}
-          {!searchTerm.trim() ? (
-            <div className="flex gap-4 mb-6 overflow-x-auto no-scrollbar pb-2">
-              {["PROCESSING", "COOKING", "OUT_FOR_DELIVERY", "COMPLETED"].map(
-                (status) => (
-                  <button
-                    key={status}
-                    onClick={() => setActiveStatus(status as any)}
-                    className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all duration-200 ${
-                      activeStatus === status
-                        ? "bg-red-600 text-white shadow-md"
-                        : "text-gray-600 hover:bg-gray-100"
-                    }`}
-                  >
-                    {status === "PROCESSING"
-                      ? "Fresh Orders"
-                      : status === "OUT_FOR_DELIVERY"
-                      ? "Out for Delivery"
-                      : status.charAt(0) + status.slice(1).toLowerCase()}
-                  </button>
-                )
-              )}
-            </div>
-          ) : (
-            <div className="mb-6 text-gray-600 italic">
-              Showing search results for “{searchTerm}”
-            </div>
-          )}
-
-          {/* Orders List */}
-          {loading || !hasFetched ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <SkeletonOrderCard key={index} />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-4 overflow-y-auto max-h-[calc(100vh-220px)] no-scrollbar px-1">
-              {filteredOrders.length > 0 ? (
-                <AnimatePresence>
-                  {filteredOrders.map((order) => (
+        {/* Orders Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Fresh Orders Column */}
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+              Fresh Orders
+              <span className="ml-2 px-2 py-0.5 text-sm bg-yellow-100 text-yellow-700 rounded-full">
+                {processingOrders.length}
+              </span>
+            </h2>
+            <div className="space-y-3">
+              {loading
+                ? Array.from({ length: 3 }).map((_, index) => (
+                    <SkeletonOrderCard key={index} />
+                  ))
+                : processingOrders.map((order) => (
                     <motion.button
                       key={order._id}
                       onClick={() => setSelectedOrder(order)}
@@ -342,24 +317,12 @@ export function Orders() {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -10 }}
                       transition={{ duration: 0.2 }}
-                      className={`w-full p-4 rounded-xl relative overflow-hidden transition-all duration-200 hover:shadow-lg transform hover:scale-[1.01] focus:outline-none ${
+                      className={`w-full p-4 rounded-lg relative overflow-hidden transition-all duration-200 hover:shadow-lg transform hover:scale-[1.01] focus:outline-none ${
                         selectedOrder?._id === order._id
                           ? "bg-gradient-to-r from-red-50 to-red-100 border border-red-200"
                           : "bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-red-50 border border-gray-200"
                       }`}
                     >
-                      {/* Status Indicator */}
-                      <div
-                        className={`absolute left-0 top-0 bottom-0 w-1 ${
-                          order.status === "PROCESSING"
-                            ? "bg-yellow-400"
-                            : order.status === "COOKING"
-                            ? "bg-red-500"
-                            : order.status === "OUT_FOR_DELIVERY"
-                            ? "bg-blue-500"
-                            : "bg-green-500"
-                        }`}
-                      />
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
@@ -389,22 +352,11 @@ export function Orders() {
                             )}
                           </div>
                         </div>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            order.status === "PROCESSING"
-                              ? "bg-yellow-100 text-yellow-700"
-                              : order.status === "COOKING"
-                              ? "bg-red-100 text-red-700"
-                              : order.status === "OUT_FOR_DELIVERY"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {order.status.charAt(0).toUpperCase() +
-                            order.status.slice(1).toLowerCase()}
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                          Waiting
                         </span>
                       </div>
-                      <div className="flex justify-between items-center pt-2">
+                      <div className="flex justify-between items-center pt-2 mt-2">
                         <div className="flex items-center gap-2 flex-wrap">
                           {order.items
                             .map((item, index) => (
@@ -428,261 +380,450 @@ export function Orders() {
                       </div>
                     </motion.button>
                   ))}
-                </AnimatePresence>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  No orders found
-                </div>
-              )}
             </div>
-          )}
-        </div>
+          </div>
 
-        {/* Right Panel - Order Details */}
-        <div className="w-[30%] p-6 bg-gray-50 mt-6 md:mt-0 relative">
-          <AnimatePresence mode="wait">
-            {selectedOrder ? (
-              <motion.div
-                key="orderDetails"
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 50 }}
-                transition={{ duration: 0.3 }}
-                className="space-y-6"
-              >
-                {/* Mobile Back Button */}
-                <div className="md:hidden mb-4">
-                  <button
-                    onClick={() => setSelectedOrder(null)}
-                    className="flex items-center text-red-600 hover:text-red-700 focus:outline-none"
-                    title="Back to orders"
-                  >
-                    <ChevronRight className="w-5 h-5 rotate-180 mr-1" />
-                    Back to Orders
-                  </button>
-                </div>
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    Order #{selectedOrder.orderId.slice(-8)}
-                  </h2>
-                  <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full text-sm">
-                    {new Date(selectedOrder.createdAt).toLocaleString()}
-                  </span>
-                </div>
-
-                {/* Delivery Location */}
-                {selectedOrder.customerDetails && (
-                  <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition-all duration-200">
-                    <h3 className="font-medium mb-3 text-gray-800">
-                      Delivery Location
-                    </h3>
-                    <div className="text-gray-600">
-                      <p className="font-medium">
-                        {selectedOrder.customerDetails?.name || "N/A"}
-                      </p>
-                      <p className="mt-1">
-                        {selectedOrder.customerDetails?.address || "N/A"}
-                      </p>
-                      <p className="mt-2 flex items-center gap-2">
-                        <span>📞</span>
-                        <span>
-                          {selectedOrder.customerDetails?.phone || "N/A"}
-                        </span>
-                      </p>
-                      {selectedOrder.customerDetails?.email && (
-                        <p className="mt-1 flex items-center gap-2">
-                          <span>📧</span>
-                          <span>{selectedOrder.customerDetails.email}</span>
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Order Items */}
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm transition-all duration-200">
-                  <h3 className="font-medium p-4 border-b border-gray-100 text-gray-800">
-                    Order Items
-                  </h3>
-                  {selectedOrder.items.map((item, index) => (
-                    <div
-                      key={index}
-                      className={`flex gap-4 p-4 ${
-                        index !== selectedOrder.items.length - 1
-                          ? "border-b border-gray-100"
-                          : ""
+          {/* Cooking Column */}
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500"></span>
+              Cooking
+              <span className="ml-2 px-2 py-0.5 text-sm bg-red-100 text-red-700 rounded-full">
+                {cookingOrders.length}
+              </span>
+            </h2>
+            <div className="space-y-3">
+              {loading
+                ? Array.from({ length: 3 }).map((_, index) => (
+                    <SkeletonOrderCard key={index} />
+                  ))
+                : cookingOrders.map((order) => (
+                    <motion.button
+                      key={order._id}
+                      onClick={() => setSelectedOrder(order)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className={`w-full p-4 rounded-lg relative overflow-hidden transition-all duration-200 hover:shadow-lg transform hover:scale-[1.01] focus:outline-none ${
+                        selectedOrder?._id === order._id
+                          ? "bg-gradient-to-r from-red-50 to-red-100 border border-red-200"
+                          : "bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-red-50 border border-gray-200"
                       }`}
                     >
-                      <img
-                        src={`https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/${user?.restaurantId}/${user?.restaurantId}-${item.id}.jpg`}
-                        alt={item.name}
-                        loading="lazy"
-                        className="w-16 h-16 rounded-lg object-cover border border-gray-100"
-                      />
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h3 className="font-medium text-gray-900">
-                              {item.name}
-                            </h3>
-                            <p className="text-sm text-gray-500">
-                              {item.description}
-                            </p>
-                            <p className="text-sm text-gray-500 mt-1">
-                              AED {item.price.toFixed(2)} × {item.quantity}{" "}
-                              items
-                            </p>
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">
+                              #{order.orderId.slice(-8)}
+                            </span>
+                            <span className="text-sm text-gray-500">•</span>
+                            <span className="text-sm text-gray-500">
+                              {new Date(order.createdAt).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                            </span>
                           </div>
-                          <span className="font-medium text-red-600">
-                            {(item.price * item.quantity).toFixed(2)} AED
-                          </span>
+                          <div className="flex flex-col">
+                            <span className="text-sm text-gray-500">
+                              {order.customerDetails?.name || "N/A"}
+                            </span>
+                            {order.estimatedMinutes && (
+                              <span className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                <Clock className="w-4 h-4" />
+                                {order.estimatedMinutes} mins
+                              </span>
+                            )}
+                          </div>
                         </div>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
+                          Cooking
+                        </span>
                       </div>
-                    </div>
+                      <div className="flex justify-between items-center pt-2 mt-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {order.items
+                            .map((item, index) => (
+                              <span
+                                key={index}
+                                className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full"
+                              >
+                                {item.quantity}x {item.name}
+                              </span>
+                            ))
+                            .slice(0, 2)}
+                          {order.items.length > 2 && (
+                            <span className="text-sm text-gray-500">
+                              +{order.items.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          {(order.totalAmount / 100).toFixed(2)} AED
+                        </span>
+                      </div>
+                    </motion.button>
                   ))}
-                </div>
-                {/* Order Summary */}
-                <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-sm transition-all duration-200">
-                  {selectedOrder.status === "COOKING" && (
-                    <form className="mb-6">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Estimated Delivery Time (minutes)
-                      </label>
-                      <div className="flex gap-2">
-                        <input
-                          type="number"
-                          min="1"
-                          max="120"
-                          value={estimatedMinutes}
-                          onChange={(e) =>
-                            setEstimatedMinutes(
-                              Math.max(1, parseInt(e.target.value) || 1)
-                            )
-                          }
-                          className="flex-1 p-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-600 transition-colors bg-white text-gray-900"
-                          required
-                        />
+            </div>
+          </div>
+
+          {/* Out for Delivery Column */}
+          <div className="bg-white rounded-xl shadow-sm p-4">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              Out for Delivery
+              <span className="ml-2 px-2 py-0.5 text-sm bg-blue-100 text-blue-700 rounded-full">
+                {deliveryOrders.length}
+              </span>
+            </h2>
+            <div className="space-y-3">
+              {loading
+                ? Array.from({ length: 3 }).map((_, index) => (
+                    <SkeletonOrderCard key={index} />
+                  ))
+                : deliveryOrders.map((order) => (
+                    <motion.button
+                      key={order._id}
+                      onClick={() => setSelectedOrder(order)}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className={`w-full p-4 rounded-lg relative overflow-hidden transition-all duration-200 hover:shadow-lg transform hover:scale-[1.01] focus:outline-none ${
+                        selectedOrder?._id === order._id
+                          ? "bg-gradient-to-r from-red-50 to-red-100 border border-red-200"
+                          : "bg-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-red-50 border border-gray-200"
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="font-semibold text-gray-900">
+                              #{order.orderId.slice(-8)}
+                            </span>
+                            <span className="text-sm text-gray-500">•</span>
+                            <span className="text-sm text-gray-500">
+                              {new Date(order.createdAt).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm text-gray-500">
+                              {order.customerDetails?.name || "N/A"}
+                            </span>
+                            {order.estimatedMinutes && (
+                              <span className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                <Clock className="w-4 h-4" />
+                                {order.estimatedMinutes} mins
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          Out for Delivery
+                        </span>
                       </div>
-                    </form>
-                  )}
-                  <div className="space-y-2 mb-6">
-                    <div className="flex justify-between font-semibold text-lg pt-2">
-                      <span>Total</span>
-                      <span className="text-red-600">
-                        {(selectedOrder.totalAmount / 100).toFixed(2)} AED
-                      </span>
-                    </div>
+                      <div className="flex justify-between items-center pt-2 mt-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {order.items
+                            .map((item, index) => (
+                              <span
+                                key={index}
+                                className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-full"
+                              >
+                                {item.quantity}x {item.name}
+                              </span>
+                            ))
+                            .slice(0, 2)}
+                          {order.items.length > 2 && (
+                            <span className="text-sm text-gray-500">
+                              +{order.items.length - 2} more
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-semibold text-gray-900">
+                          {(order.totalAmount / 100).toFixed(2)} AED
+                        </span>
+                      </div>
+                    </motion.button>
+                  ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Drawer - Order Details */}
+      {selectedOrder && (
+        <div className="fixed inset-y-0 right-0 w-[30%] bg-white shadow-xl transform transition-transform duration-300 ease-in-out overflow-y-auto border-l border-gray-200">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key="orderDetails"
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 50 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6 p-6 relative"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white z-10 pb-4 border-b border-gray-200">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900">
+                      Order #{selectedOrder.orderId.slice(-8)}
+                    </h2>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {new Date(selectedOrder.createdAt).toLocaleString()}
+                    </p>
                   </div>
-                  {/* Action Button */}
                   <button
-                    className={`w-full py-3 rounded-lg transition-all duration-200 flex justify-center items-center ${
-                      selectedOrder.status === "COMPLETED" || isUpdating
-                        ? "bg-gray-200 text-gray-600 cursor-not-allowed"
-                        : "bg-red-600 text-white hover:bg-red-700 shadow-sm hover:shadow"
-                    }`}
-                    onClick={() => {
-                      const nextStatus =
-                        selectedOrder.status === "PROCESSING"
-                          ? "COOKING"
-                          : selectedOrder.status === "COOKING"
-                          ? "OUT_FOR_DELIVERY"
-                          : "COMPLETED";
-                      handleStatusChangeRequest(selectedOrder, nextStatus);
-                    }}
-                    disabled={
-                      selectedOrder.status === "COMPLETED" || isUpdating
-                    }
+                    onClick={() => setSelectedOrder(null)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                   >
-                    {isUpdating && (
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                    )}
-                    {selectedOrder.status === "PROCESSING"
-                      ? "Start Cooking"
-                      : selectedOrder.status === "COOKING"
-                      ? "Send for Delivery"
-                      : selectedOrder.status === "OUT_FOR_DELIVERY"
-                      ? "Mark as Completed"
-                      : "Order Completed"}
+                    <X className="w-5 h-5 text-gray-500" />
                   </button>
                 </div>
-              </motion.div>
-            ) : (
-              <motion.div
-                key="noOrderSelected"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="h-full flex items-center justify-center text-gray-500"
-              >
-                <div className="text-center">
-                  <div className="mb-4">
-                    <ChevronRight className="w-12 h-12 mx-auto text-gray-400" />
-                  </div>
-                  <p>Select an order to view details</p>
+                <div className="mt-4 flex items-center gap-2">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-medium ${
+                      selectedOrder.status === "PROCESSING"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : selectedOrder.status === "COOKING"
+                        ? "bg-red-100 text-red-700"
+                        : selectedOrder.status === "OUT_FOR_DELIVERY"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-green-100 text-green-700"
+                    }`}
+                  >
+                    {selectedOrder.status.charAt(0).toUpperCase() +
+                      selectedOrder.status.slice(1).toLowerCase()}
+                  </span>
+                  {selectedOrder.estimatedMinutes && (
+                    <span className="text-sm text-gray-500 flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      {selectedOrder.estimatedMinutes} mins
+                    </span>
+                  )}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        {/* Confirmation Modal */}
-        <AnimatePresence>
-          {confirmModal.visible &&
-            confirmModal.order &&
-            confirmModal.newStatus && (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
-              >
-                <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-                  <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    Confirm Update
+              </div>
+              {/* Delivery Location */}
+              {selectedOrder.customerDetails && (
+                <div className="bg-gradient-to-br from-gray-50 to-white p-6 rounded-xl border border-gray-200">
+                  <h3 className="font-semibold mb-4 text-gray-800 flex items-center gap-2">
+                    <span className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                      🚚
+                    </span>
+                    Delivery Location
                   </h3>
-                  <p className="text-gray-700 mb-6">
-                    Are you sure you want to update order #
-                    {confirmModal.order.orderId.slice(-8)} to{" "}
-                    {confirmModal.newStatus}?
-                  </p>
-                  <div className="flex justify-end space-x-3">
+                  <div className=" text-gray-600">
+                    <p className="font-medium text-gray-800">
+                      {selectedOrder.customerDetails?.name || "N/A"}
+                    </p>
+                    <p className="text-sm bg-gray-50 rounded-lg">
+                      {selectedOrder.customerDetails?.address || "N/A"}
+                    </p>
+                    <div className="flex items-center gap-3 text-sm mt-1">
+                      <span className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                        📞
+                      </span>
+                      <span>
+                        {selectedOrder.customerDetails?.phone || "N/A"}
+                      </span>
+                    </div>
+                    {selectedOrder.customerDetails?.email && (
+                      <div className="flex items-center gap-3 text-sm">
+                        <span className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                          📧
+                        </span>
+                        <span>{selectedOrder.customerDetails.email}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Order Items */}
+              <div className="bg-gradient-to-br from-gray-50 p-6  to-white rounded-xl border border-gray-200">
+                <h3 className="font-semibold border-b border-gray-100 text-gray-800 flex items-center gap-2">
+                  Order Items
+                </h3>
+                {selectedOrder.items.map((item, index) => (
+                  <div
+                    key={index}
+                    className={`flex gap-4 p-2 hover:bg-gray-50 transition-colors ${
+                      index !== selectedOrder.items.length - 1
+                        ? "border-b border-gray-100"
+                        : ""
+                    }`}
+                  >
+                    <img
+                      src={`https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/${user?.restaurantId}/${user?.restaurantId}-${item.id}.jpg`}
+                      alt={item.name}
+                      loading="lazy"
+                      className="w-12 h-12 rounded-xl object-cover border border-gray-100 shadow-sm"
+                    />
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-gray-900 text-sm">
+                            {item.name}
+                          </h3>
+
+                          <p className="text-xs  text-gray-600 rounded-full inline-block">
+                            {item.quantity} × AED {item.price.toFixed(2)}
+                          </p>
+                        </div>
+                        <span className="font-semibold text-red-600  px-2 py-0.5 rounded-lg text-sm">
+                          {(item.price * item.quantity).toFixed(2)} AED
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Order Summary */}
+              <div className="sticky bottom-0 bg-white pt-4 border-t border-gray-200">
+                {selectedOrder.status === "COOKING" && (
+                  <form className="mb-6">
+                    <label className="block text-sm font-semibold text-gray-800 mb-2">
+                      Estimated Delivery Time (minutes)
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max="120"
+                        value={estimatedMinutes}
+                        onChange={(e) =>
+                          setEstimatedMinutes(
+                            Math.max(1, parseInt(e.target.value) || 1)
+                          )
+                        }
+                        className="flex-1 p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-600 text-center font-medium"
+                        required
+                      />
+                    </div>
+                  </form>
+                )}
+
+                <div className="space-y-2 mb-6">
+                  <div className="flex justify-between items-center bg-gray-50 p-4 rounded-xl">
+                    <span>Total</span>
+                    <span className="text-xl font-bold text-red-600">
+                      {(selectedOrder.totalAmount / 100).toFixed(2)} AED
+                    </span>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="space-y-3">
+                  {selectedOrder.status === "PROCESSING" && (
                     <button
                       onClick={() =>
-                        setConfirmModal({
-                          visible: false,
-                          order: null,
-                          newStatus: null,
-                        })
+                        handleStatusChangeRequest(selectedOrder, "COOKING")
                       }
-                      className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-100 transition-colors"
+                      disabled={
+                        isUpdating || selectedOrder.status !== "PROCESSING"
+                      }
+                      className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                     >
-                      Cancel
+                      Start Cooking
                     </button>
+                  )}
+
+                  {selectedOrder.status === "COOKING" && (
                     <button
                       onClick={() =>
-                        confirmModal.order &&
-                        confirmModal.newStatus &&
-                        updateOrderStatus(
-                          confirmModal.order,
-                          confirmModal.newStatus
+                        handleStatusChangeRequest(
+                          selectedOrder,
+                          "OUT_FOR_DELIVERY"
                         )
                       }
-                      className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                      disabled={
+                        isUpdating || selectedOrder.status !== "COOKING"
+                      }
+                      className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                     >
-                      Confirm
+                      Send for Delivery
                     </button>
-                  </div>
+                  )}
+
+                  {selectedOrder.status === "OUT_FOR_DELIVERY" && (
+                    <button
+                      onClick={() =>
+                        handleStatusChangeRequest(selectedOrder, "COMPLETED")
+                      }
+                      disabled={
+                        isUpdating ||
+                        selectedOrder.status !== "OUT_FOR_DELIVERY"
+                      }
+                      className="w-full py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
+                    >
+                      Mark as Completed
+                    </button>
+                  )}
                 </div>
-              </motion.div>
-            )}
-        </AnimatePresence>
-        <audio
-          ref={bellAudioRef}
-          src="/bell.mp3"
-          preload="auto"
-          style={{ display: "none" }}
-        />
-      </div>
+              </div>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmModal.visible && confirmModal.order && confirmModal.newStatus && (
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="absolute inset-0 bg-black opacity-50"> </div>
+          <div className="relative bg-white rounded-xl shadow-lg p-6 w-[400px] max-w-lg mx-4">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Confirm Status Change
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to change the status of order #
+              {confirmModal.order.orderId.slice(-8)} to{" "}
+              {confirmModal.newStatus.toLowerCase()}?
+            </p>
+            <div className="flex justify-end space-x-4">
+              <button
+                onClick={() =>
+                  setConfirmModal({
+                    visible: false,
+                    order: null,
+                    newStatus: null,
+                  })
+                }
+                className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() =>
+                  updateOrderStatus(confirmModal.order, confirmModal.newStatus)
+                }
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Audio Element for Notifications */}
+      <audio
+        ref={bellAudioRef}
+        src="/bell.mp3"
+        preload="auto"
+        style={{ display: "none" }}
+      />
     </div>
   );
 }
