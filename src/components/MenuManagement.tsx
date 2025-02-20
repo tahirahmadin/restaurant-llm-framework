@@ -795,11 +795,11 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
 
       {/* Overlay for Item Details */}
       {selectedItem ? (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50">
+          <div className="fixed inset-y-0 right-0 w-[45%] bg-white shadow-xl transform transition-transform duration-300 ease-in-out overflow-y-auto">
             <div className="bg-white rounded-xl shadow-sm">
               {/* Header */}
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center relative">
+              <div className="sticky top-0 z-10 bg-white p-4 border-b border-gray-200">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">
                     Edit Item
@@ -808,7 +808,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                 <div className="flex items-center space-x-4">
                   <button
                     onClick={() => handleDeleteIconClick(selectedItem.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors"
+                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors absolute right-16 top-4"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
@@ -816,7 +816,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                     (selectedItem?.isNew ? (
                       <button
                         onClick={handleAddNewItemToServer}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors"
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors absolute right-24 top-4"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Item
@@ -824,7 +824,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                     ) : (
                       <button
                         onClick={handleSaveChanges}
-                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors"
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-500 flex items-center transition-colors absolute right-24 top-4"
                       >
                         <Save className="w-4 h-4 mr-2" />
                         Save Changes
@@ -832,7 +832,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                     ))}
                   <button
                     onClick={() => setSelectedItem(null)}
-                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors absolute right-4 top-4"
                   >
                     <X className="w-5 h-5 text-gray-500" />
                   </button>
@@ -840,7 +840,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
               </div>
 
               {/* Form Fields */}
-              <div className="p-6">
+              <div className="p-6 pb-24">
                 <div className="grid grid-cols-2 gap-6">
                   {orderedColumns.map((key) => (
                     <div
@@ -972,7 +972,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                 </div>
 
                 {/* Customizations Section */}
-                <div className="mt-8">
+                <div className="mt-8 pb-20">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">
                     Customizations
                   </h3>
@@ -1125,6 +1125,30 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
                       Add New Category
                     </button>
                   </div>
+                </div>
+              </div>
+
+              {/* Sticky Footer */}
+              <div className="fixed bottom-0 right-0 w-[45%] bg-white border-t border-gray-200 p-4">
+                <div className="flex justify-end space-x-4">
+                  <button
+                    onClick={() => setSelectedItem(null)}
+                    className="px-6 py-2 border border-gray-200 rounded-lg hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  {hasChanges && (
+                    <button
+                      onClick={
+                        selectedItem?.isNew
+                          ? handleAddNewItemToServer
+                          : handleSaveChanges
+                      }
+                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      {selectedItem?.isNew ? "Add Item" : "Save Changes"}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
