@@ -42,20 +42,20 @@ export function Profile() {
 
   const fetchWithCache = async (imageUrl: string) => {
     try {
-      const cache = await caches.open('image-cache');
+      const cache = await caches.open("image-cache");
       await cache.delete(imageUrl);
-      const response = await fetch(imageUrl, { cache: 'reload' });
+      const response = await fetch(imageUrl, { cache: "reload" });
       await cache.put(imageUrl, response.clone());
       return response;
     } catch (error) {
-      console.error('Cache operation failed:', error);
+      console.error("Cache operation failed:", error);
       return fetch(imageUrl);
     }
   };
 
   const handleImageUpload = async (file: File) => {
     try {
-      toast.loading('Uploading image...');
+      toast.loading("Uploading image...");
       const formData = new FormData();
       formData.append("file", file);
       formData.append("restaurantId", user?.restaurantId?.toString() || "");
@@ -63,7 +63,7 @@ export function Profile() {
 
       const tempUrl = URL.createObjectURL(file);
       setCurrentImageUrl(tempUrl);
-      setImageKey(prev => prev + 1);
+      setImageKey((prev) => prev + 1);
 
       const response = await fetch(`${API_URL}/upload/uploadImage`, {
         method: "POST",
@@ -75,19 +75,19 @@ export function Profile() {
 
       // Force fetch new image and clear cache
       await fetchWithCache(data.fileUrl);
-      
+
       const imageUrlWithTimestamp = `${data.fileUrl}?t=${Date.now()}`;
       setCurrentImageUrl(imageUrlWithTimestamp);
       setProfileData((prev) =>
         prev ? { ...prev, image: imageUrlWithTimestamp } : null
       );
-      setImageKey(prev => prev + 1);
+      setImageKey((prev) => prev + 1);
 
       URL.revokeObjectURL(tempUrl);
       toast.dismiss();
       toast.success("Image uploaded successfully!");
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error("Upload error:", error);
       toast.dismiss();
       toast.error("Failed to upload image");
       setCurrentImageUrl(profileData?.image || "");
@@ -164,15 +164,17 @@ export function Profile() {
               <div className="flex justify-center items-center w-full rounded-xl h-[200px]">
                 <img
                   key={imageKey}
-                  src={`${currentImageUrl || "https://via.placeholder.com/150"}?v=${imageKey}`}
+                  src={`${
+                    currentImageUrl || "https://via.placeholder.com/150"
+                  }?v=${imageKey}`}
                   alt="Restaurant Profile"
                   className="w-full h-full object-cover rounded-xl"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.src = "https://via.placeholder.com/150";
-                    console.error('Image load error');
+                    console.error("Image load error");
                   }}
-                  onLoad={() => console.log('Image loaded successfully')}
+                  onLoad={() => console.log("Image loaded successfully")}
                 />
               </div>
               {isEditing && (
