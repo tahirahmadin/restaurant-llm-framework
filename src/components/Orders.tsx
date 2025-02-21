@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import useOrderStore from "../store/useOrderStore";
 import useAuthStore from "../store/useAuthStore";
@@ -26,10 +26,35 @@ export function Orders() {
     newStatus: string | null;
   }>({ visible: false, order: null, newStatus: null });
 
+  // Ensure that orders are initialized as an empty array in your store.
   const { orders, setOrders } = useOrderStore();
   const bellAudioRef = useRef<HTMLAudioElement>(null);
 
-  const loadOrders = async () => {
+  // Unlock audio context on first user interaction to avoid autoplay blocks.
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (bellAudioRef.current) {
+        // Play muted briefly to unlock audio
+        bellAudioRef.current.muted = true;
+        bellAudioRef.current
+          .play()
+          .then(() => {
+            bellAudioRef.current!.pause();
+            bellAudioRef.current!.muted = false;
+            console.log("Audio context unlocked");
+          })
+          .catch((err) => console.error("Audio unlock failed:", err));
+      }
+    };
+
+    document.addEventListener("click", unlockAudio, { once: true });
+    return () => {
+      document.removeEventListener("click", unlockAudio);
+    };
+  }, []);
+
+  // Function to load orders; ensures the result is always an array.
+  const loadOrders = useCallback(async () => {
     if (!user?.restaurantId) {
       toast.error("Restaurant ID not found");
       return;
@@ -39,8 +64,8 @@ export function Orders() {
     const startTime = Date.now();
     try {
       const fetchedOrders = await fetchRestaurantOrders(user.restaurantId);
+      // Always treat fetchedOrders as an array.
       const ordersArray = Array.isArray(fetchedOrders) ? fetchedOrders : [];
-
       const storedTimestampStr = sessionStorage.getItem("lastOrderTimestamp");
       if (storedTimestampStr) {
         const storedTimestamp = Number(storedTimestampStr);
@@ -49,9 +74,7 @@ export function Orders() {
         );
         if (newOrders.length > 0) {
           toast.success(
-            `${newOrders.length} new order${
-              newOrders.length > 1 ? "s" : ""
-            } received!`
+            `${newOrders.length} new order${newOrders.length > 1 ? "s" : ""} received!`
           );
           if (bellAudioRef.current) {
             bellAudioRef.current
@@ -78,24 +101,92 @@ export function Orders() {
         setLoading(false);
       }
     }
-  };
+  }, [user?.restaurantId, setOrders]);
 
+  // Initial order load when restaurantId is available.
   useEffect(() => {
     if (user?.restaurantId) {
       loadOrders();
     }
-  }, [user?.restaurantId]);
+  }, [user?.restaurantId, loadOrders]);
+
+  // WebSocket integration for live updates.
+  useEffect(() => {
+    if (!user?.restaurantId) return;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 3000; // 3 seconds
+    let ws: WebSocket;
+    let pingInterval: number;
+
+    function connect() {
+      ws = new WebSocket("wss://paymentstest.gobbl.ai/ws");
+      ws.onopen = () => {
+        console.log("Connected to WebSocket server");
+        reconnectAttempts = 0;
+        // Set a heartbeat ping every 30 seconds.
+        pingInterval = window.setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 30000);
+      };
+
+      ws.onmessage = (event) => {
+        console.log("Received message:", event.data);
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "orderCreated" && data.order) {
+            console.log("New order created:", data.order);
+            // Reload orders upon receiving a new order.
+            loadOrders();
+          }
+        } catch (error) {
+          console.error("Error parsing message:", error);
+        }
+      };
+
+      const handleReconnection = () => {
+        clearInterval(pingInterval);
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          console.log(
+            `Reconnecting... Attempt ${reconnectAttempts}/${maxReconnectAttempts}`
+          );
+          setTimeout(connect, reconnectDelay);
+        } else {
+          console.error("Max reconnection attempts reached");
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        handleReconnection();
+      };
+
+      ws.onclose = (event) => {
+        console.log("Disconnected from WebSocket server:", event.code, event.reason);
+        handleReconnection();
+      };
+    }
+
+    connect();
+
+    // Clean up the connection on component unmount.
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+      clearInterval(pingInterval);
+    };
+  }, [user?.restaurantId, loadOrders]);
 
   const updateOrderStatus = async (order: Order, newStatus: string) => {
     setIsUpdating(true);
     try {
       const res = await updateOrderStatusAPI(
         order.orderId,
-        newStatus as
-          | "PROCESSING"
-          | "COOKING"
-          | "OUT_FOR_DELIVERY"
-          | "COMPLETED",
+        newStatus as "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED",
         estimatedMinutes
       );
       if (res) {
@@ -118,16 +209,16 @@ export function Orders() {
     setConfirmModal({ visible: true, order, newStatus: nextStatus });
   };
 
+  // Ensure orders is always treated as an array.
   const filteredOrders = useMemo(() => {
+    const safeOrders = Array.isArray(orders) ? orders : [];
     let filtered = searchTerm.trim()
-      ? orders.filter(
+      ? safeOrders.filter(
           (order) =>
             order.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.customerDetails?.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())
+            order.customerDetails?.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
-      : orders;
+      : safeOrders;
 
     return [...filtered].sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();

@@ -19,7 +19,9 @@ export const OrderList: React.FC<OrderListProps> = ({
   title,
   statusColor,
 }) => {
-  const filteredOrders = orders.filter((order) => order.status === status);
+  // Ensure orders is always iterable.
+  const safeOrders = Array.isArray(orders) ? orders : [];
+  const filteredOrders = safeOrders.filter((order) => order.status === status);
 
   return (
     <div className="bg-white rounded-xl shadow-sm p-4">
