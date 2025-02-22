@@ -142,8 +142,8 @@ export function Signup() {
           ...prev,
           address,
           location: {
-            latitude: position.coords.latitude,
             longitude: position.coords.longitude,
+            latitude: position.coords.latitude,
           }
         }));
         toast.success('Location and address captured successfully');
@@ -171,8 +171,8 @@ export function Signup() {
           setRestaurantDetails(prev => ({
             ...prev,
             location: {
-              latitude: location.lat(),
               longitude: location.lng(),
+              latitude: location.lat(),
             }
           }));
         } else {

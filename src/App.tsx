@@ -59,8 +59,8 @@ interface RestaurantDetails {
   contactNo: string;
   address: string;
   location?: {
-    latitude: number;
     longitude: number;
+    latitude: number;
   };
   isOnline?: boolean;
   menu?: {

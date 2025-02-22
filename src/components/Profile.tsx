@@ -108,8 +108,8 @@ export function Profile() {
         adminUsername: username,
         image: profileData.image,
         location: {
-          latitude: profileData.location.coordinates[1],
           longitude: profileData.location.coordinates[0],
+          latitude: profileData.location.coordinates[1],
         },
       });
 

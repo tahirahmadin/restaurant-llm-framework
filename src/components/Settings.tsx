@@ -18,8 +18,8 @@ interface RestaurantDetails {
   address: string;
   menuSummary?: string;
   location?: {
-    latitude: number;
     longitude: number;
+    latitude: number;
   };
   isOnline?: boolean;
   menu?: {

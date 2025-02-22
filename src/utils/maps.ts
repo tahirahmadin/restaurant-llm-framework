@@ -48,8 +48,8 @@ export const loadGoogleMapsScript = (): Promise<void> => {
 };
 
 export const getAddressFromCoordinates = async (
-  latitude: number,
-  longitude: number
+  longitude: number,
+  latitude: number
 ): Promise<string> => {
   try {
     await loadGoogleMapsScript();
@@ -61,7 +61,7 @@ export const getAddressFromCoordinates = async (
       }
 
       const geocoder = new google.maps.Geocoder();
-      const latlng = { lat: latitude, lng: longitude };
+      const latlng = { lng: longitude, lat: latitude };
 
       geocoder.geocode({ location: latlng }, (results, status) => {
         if (status === 'OK' && results?.[0]) {
