@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from "react";
 import { toast } from "sonner";
 import useOrderStore from "../store/useOrderStore";
 import useAuthStore from "../store/useAuthStore";
@@ -74,7 +80,9 @@ export function Orders() {
         );
         if (newOrders.length > 0) {
           toast.success(
-            `${newOrders.length} new order${newOrders.length > 1 ? "s" : ""} received!`
+            `${newOrders.length} new order${
+              newOrders.length > 1 ? "s" : ""
+            } received!`
           );
           if (bellAudioRef.current) {
             bellAudioRef.current
@@ -120,7 +128,8 @@ export function Orders() {
     let pingInterval: number;
 
     function connect() {
-      ws = new WebSocket("wss://paymentstest.gobbl.ai/ws");
+      let socketUrl = import.meta.env.VITE_PUBLIC_BACKEND_SOCKET_URL;
+      ws = new WebSocket(socketUrl);
       ws.onopen = () => {
         console.log("Connected to WebSocket server");
         reconnectAttempts = 0;
@@ -165,7 +174,11 @@ export function Orders() {
       };
 
       ws.onclose = (event) => {
-        console.log("Disconnected from WebSocket server:", event.code, event.reason);
+        console.log(
+          "Disconnected from WebSocket server:",
+          event.code,
+          event.reason
+        );
         handleReconnection();
       };
     }
@@ -186,7 +199,11 @@ export function Orders() {
     try {
       const res = await updateOrderStatusAPI(
         order.orderId,
-        newStatus as "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED",
+        newStatus as
+          | "PROCESSING"
+          | "COOKING"
+          | "OUT_FOR_DELIVERY"
+          | "COMPLETED",
         estimatedMinutes
       );
       if (res) {
@@ -216,7 +233,9 @@ export function Orders() {
       ? safeOrders.filter(
           (order) =>
             order.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            order.customerDetails?.name.toLowerCase().includes(searchTerm.toLowerCase())
+            order.customerDetails?.name
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())
         )
       : safeOrders;
 
