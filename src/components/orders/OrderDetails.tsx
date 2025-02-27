@@ -42,7 +42,7 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({
 
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-900">
-              Order #{selectedOrder.orderId.slice(-8)}
+              Order #{selectedOrder.orderId}
             </h2>
             <span className="text-red-600 bg-red-50 px-3 py-1 rounded-full text-sm">
               {new Date(selectedOrder.createdAt).toLocaleString()}

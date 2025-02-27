@@ -44,7 +44,7 @@ export const OrderCard: React.FC<OrderCardProps> = ({
                   : "text-gray-800"
               }`}
             >
-              #{order.orderId.slice(-8)}
+              #{order.orderId}
             </span>
             <span className="text-sm text-gray-500">•</span>
             <span className="text-sm text-gray-500">

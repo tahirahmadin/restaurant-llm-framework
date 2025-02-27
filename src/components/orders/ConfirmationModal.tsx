@@ -26,8 +26,8 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           Confirm Status Change
         </h2>
         <p className="text-gray-600 mb-6">
-          Are you sure you want to change the status of order #
-          {order.orderId.slice(-8)} to {newStatus.toLowerCase()}?
+          Are you sure you want to change the status of order #{order.orderId}{" "}
+          to {newStatus.toLowerCase()}?
         </p>
         <div className="flex justify-end space-x-4">
           <button

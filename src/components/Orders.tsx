@@ -208,7 +208,7 @@ export function Orders() {
       );
       if (res) {
         setOrders(res);
-        toast.success(`Order ${order.orderId.slice(-8)} ${newStatus}`);
+        toast.success(`Order ${order.orderId} ${newStatus}`);
         if (selectedOrder && selectedOrder._id === order._id) {
           setSelectedOrder({ ...order, status: newStatus });
         }
