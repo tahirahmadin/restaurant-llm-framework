@@ -1,162 +1,280 @@
 import React, { useState } from "react";
-import {
-  Search,
-  Bell,
-  Calendar,
-  Download,
-  ChevronDown,
-  Info,
-} from "lucide-react";
+import { HelpCircle, ChevronRight, ArrowRight, Clock } from "lucide-react";
+import { useOrderStore } from "../services/orderService";
+import useAuthStore from "../store/useAuthStore";
+import { useEffect } from "react";
 
 export function Overview() {
-  const [timeFilter, setTimeFilter] = useState("Last 30 days");
+  const { user } = useAuthStore();
+  const { orders, loadOrders } = useOrderStore();
+  const setActiveTab = useAuthStore((state) => state.setActiveTab);
 
-  const stats = [
-    {
-      title: "Fresh Orders",
-      value: "3",
-      subtext: "orders",
-      change: 0,
-      icon: "🆕",
-    },
-    {
-      title: "Cooking",
-      value: "1",
-      subtext: "orders",
-      change: 0,
-      icon: "👨‍🍳",
-    },
-    {
-      title: "Completed",
-      value: "1",
-      subtext: "orders",
-      change: 0,
-      icon: "✅",
-    },
-  ];
+  useEffect(() => {
+    if (user?.restaurantId) {
+      loadOrders(user.restaurantId);
+    }
+  }, [user?.restaurantId, loadOrders]);
 
-  const orderHistory = [
+  const chartData = {
+    dates: ["01 Nov", "02 Nov", "03 Nov", "04 Nov", "05 Nov", "06 Nov"],
+    values: [4000, 4500, 2500, 6000, 4500, 3500],
+  };
+
+  const metrics = [
     {
-      id: "#12345678",
-      status: "Completed",
-      date: "1/10/2024 at 5:12 PM",
-      amount: 32.85,
+      value: "16,907",
+      label: "Total sales in AED",
+      change: "+203",
+      period: "This Month",
     },
-    { id: "#907655", status: "Completed", date: "20:40pm", amount: 35.08 },
-    { id: "#907654", status: "Cooking", date: "20:35pm", amount: 45.08 },
-    { id: "#907653", status: "Fresh", date: "20:30pm", amount: 40.49 },
+    {
+      value: "1,300",
+      label: "Highest sale in a day",
+      change: "+39",
+      period: "This Month",
+    },
+    {
+      value: "789",
+      label: "Completed orders",
+      change: "+132",
+      period: "This Month",
+    },
+    {
+      value: "222",
+      label: "Total customers",
+      change: "+34",
+      period: "This Month",
+    },
   ];
 
   return (
-    <div className="flex-1 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-semibold">Hello, Mike!</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          {/* Search */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search anything here..."
-              className="pl-10 pr-4 py-2 rounded-lg border border-gray-200 w-64 focus:outline-none focus:ring-2 focus:ring-[#f15927]"
-            />
-          </div>
-          {/* Notifications */}
-          <button className="p-2 rounded-lg hover:bg-gray-100">
-            <Bell className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-      </div>
-
-      {/* Filters & Export */}
-      <div className="flex items-center justify-between mb-6">
-        <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg hover:bg-gray-50">
-          <Calendar className="w-4 h-4" />
-          <span>{timeFilter}</span>
-          <ChevronDown className="w-4 h-4" />
-        </button>
-        <button className="flex items-center gap-2 px-4 py-2 bg-[#f15927] text-white rounded-lg hover:bg-[#d94d1f]">
-          <Download className="w-4 h-4" />
-          Export PDF
-        </button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-3 gap-6 mb-8">
-        {stats.map((stat, index) => (
-          <div key={index} className="bg-white p-6 rounded-xl shadow-sm">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <p className="text-gray-600 text-sm">{stat.title}</p>
-                <h3 className="text-2xl font-semibold mt-1">
-                  {stat.value}{" "}
-                  <span className="text-gray-500 text-lg">{stat.subtext}</span>
-                </h3>
+    <div className="flex-1 p-8 space-y-6">
+      <div className="grid grid-cols-[3fr_2fr] gap-6">
+        {/* Left Section */}
+        <div className="space-y-6 ">
+          {/* Top Metrics Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {metrics.map((metric, index) => (
+              <div key={index} className="bg-white p-6 rounded-3xl">
+                <div className="space-y-2">
+                  <h3 className="text-4xl font-bold">{metric.value}</h3>
+                  <p className="text-gray-600">{metric.label}</p>
+                </div>
               </div>
-              <span className="text-2xl">{stat.icon}</span>
+            ))}
+          </div>
+
+          {/* Orders Section */}
+          <div className="bg-white p-6 rounded-3xl ">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                Active orders
+                <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-1 rounded-full">
+                  {orders.filter((o) => o.status !== "COMPLETED").length} Active
+                </span>
+              </h3>
+              <button
+                className="text-emerald-600 flex items-center gap-1 text-sm font-medium"
+                onClick={() => setActiveTab("orders")}
+              >
+                Manage orders <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 h-[300px] overflow-y-auto">
+              {orders
+                .filter((order) => order.status !== "COMPLETED")
+                .map((order, index) => (
+                  <div
+                    key={order._id}
+                    className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl"
+                  >
+                    <div
+                      className={`h-10 rounded-lg flex items-center justify-center text-white font-medium px-2
+                      ${
+                        order.status === "PROCESSING"
+                          ? "bg-yellow-500"
+                          : order.status === "COOKING"
+                          ? "bg-red-500"
+                          : "bg-green-500"
+                      }`}
+                    >
+                      {order.orderId}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-medium">
+                            {order.customerDetails.name}
+                          </h4>
+                          <p className="text-sm text-gray-500">
+                            {order.items.length} items
+                          </p>
+                        </div>
+
+                        <div className="flex flex-col justify-end items-center">
+                          <div
+                            className={`px-3 py-1 rounded-full text-sm
+                          ${
+                            order.status === "PROCESSING"
+                              ? "bg-yellow-100 text-yellow-700"
+                              : order.status === "COOKING"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-green-100 text-green-700"
+                          }`}
+                          >
+                            {order.status === "PROCESSING"
+                              ? "Waiting"
+                              : order.status === "COOKING"
+                              ? "Cooking Now"
+                              : "Delivering"}
+                          </div>
+
+                          <div className="flex items-center gap-1 mt-2 text-sm text-gray-500">
+                            <Clock className="w-4 h-4" />
+                            <span>
+                              {new Date(order.updatedAt).toLocaleTimeString(
+                                [],
+                                {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                }
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Section */}
+        <div className="space-y-6">
+          {/* Players Card */}
+          <div className="bg-white p-6 rounded-3xl">
+            <div className="flex justify-between items-start">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                Most ordered items
+              </h3>
             </div>
             <div
-              className={`text-sm ${
-                stat.change >= 0 ? "text-green-500" : "text-red-500"
-              }`}
+              key={12}
+              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mt-3"
             >
-              {stat.change >= 0 ? "↑" : "↓"} {Math.abs(stat.change)}% vs past
-              month
+              <div
+                className={`h-33 w-33 rounded-xl flex items-center justify-center text-white font-medium
+                     bg-green-500`}
+              >
+                <img
+                  src="https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/1/1-5.jpg"
+                  className="rounded-xl h-16 w-16"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium">Kunafa Donut</h4>
+                    <p className="text-sm text-gray-500">8 AED</p>
+                  </div>
+
+                  <div className="flex flex-col justify-end items-center">
+                    <div
+                      className={`px-3 py-1 rounded-full text-sm
+                          bg-green-100 text-green-700`}
+                    >
+                      39 times
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              key={12}
+              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mt-3"
+            >
+              <div
+                className={`h-33 w-33 rounded-xl flex items-center justify-center text-white font-medium
+                     bg-green-500`}
+              >
+                <img
+                  src="https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/1/1-5.jpg"
+                  className="rounded-xl h-16 w-16"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium">Kunafa Donut</h4>
+                    <p className="text-sm text-gray-500">8 AED</p>
+                  </div>
+
+                  <div className="flex flex-col justify-end items-center">
+                    <div
+                      className={`px-3 py-1 rounded-full text-sm
+                          bg-green-100 text-green-700`}
+                    >
+                      39 times
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div
+              key={12}
+              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mt-3"
+            >
+              <div
+                className={`h-33 w-33 rounded-xl flex items-center justify-center text-white font-medium
+                     bg-green-500`}
+              >
+                <img
+                  src="https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/1/1-5.jpg"
+                  className="rounded-xl h-16 w-16"
+                />
+              </div>
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-medium">Kunafa Donut</h4>
+                    <p className="text-sm text-gray-500">8 AED</p>
+                  </div>
+
+                  <div className="flex flex-col justify-end items-center">
+                    <div
+                      className={`px-3 py-1 rounded-full text-sm
+                          bg-green-100 text-green-700`}
+                    >
+                      39 times
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Orders History */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-lg font-semibold">Orders history</h2>
-          <button className="text-green-500 hover:text-green-600 text-sm">
-            more →
-          </button>
+          {/* Achievement Card */}
+          <div className="bg-[#DA3642] p-6 rounded-3xl text-white relative overflow-hidden">
+            <div className="relative z-10">
+              <h2 className="text-3xl font-bold leading-tight">
+                You've Unlocked
+                <br />a New Feature!
+              </h2>
+              <div className="flex gap-4 mt-6">
+                <div className="bg-emerald-50 bg-opacity-30 px-3 py-2 rounded-xl">
+                  Enable now
+                </div>
+              </div>
+            </div>
+            <img
+              src="https://newsroom.oobit.com/content/images/2023/09/Oobit_Tap.jpg"
+              className="absolute right-0 bottom-0 h-32 rounded-bl-3xl"
+              alt="Crypto payment"
+            />
+          </div>
         </div>
-        <table className="w-full">
-          <thead>
-            <tr className="text-left text-gray-600 text-sm">
-              <th className="pb-4">Order number</th>
-              <th className="pb-4">Status</th>
-              <th className="pb-4">Date and Time</th>
-              <th className="pb-4">Amount</th>
-              <th className="pb-4">Info</th>
-            </tr>
-          </thead>
-          <tbody>
-            {orderHistory.map((order) => (
-              <tr key={order.id} className="border-t">
-                <td className="py-4">{order.id}</td>
-                <td className="py-4">
-                  <span
-                    className={`inline-flex items-center px-2 py-1 rounded-full text-sm
-                    ${
-                      order.status === "Completed"
-                        ? "bg-green-100 text-green-600"
-                        : order.status === "Cooking"
-                        ? "bg-orange-100 text-[#f15927]"
-                        : "bg-blue-100 text-blue-600"
-                    }`}
-                  >
-                    {order.status}
-                  </span>
-                </td>
-                <td className="py-4 text-gray-600">{order.date}</td>
-                <td className="py-4">${order.amount.toFixed(2)}</td>
-                <td className="py-4">
-                  <button className="text-gray-400 hover:text-gray-600">
-                    <Info className="w-5 h-5" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
     </div>
   );

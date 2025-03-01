@@ -69,15 +69,6 @@ interface RestaurantDetails {
   };
 }
 
-type TabType =
-  | "overview"
-  | "orders"
-  | "menu"
-  | "profile"
-  | "payments"
-  | "help"
-  | "settings";
-
 function App() {
   const { user } = useAuthStore();
   const activeTab = useAuthStore((state) => state.activeTab);

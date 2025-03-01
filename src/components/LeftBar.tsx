@@ -44,6 +44,7 @@ export function LeftBar({
   const { user } = useAuthStore();
 
   const navItems = [
+    { id: "overview", label: "Overview", icon: HelpCircle },
     { id: "orders", label: "Orders", icon: ShoppingBag },
     { id: "menu", label: "Menu", icon: MenuIcon },
     { id: "profile", label: "Profile", icon: User },
