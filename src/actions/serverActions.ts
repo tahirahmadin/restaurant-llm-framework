@@ -276,6 +276,40 @@ export const getRestaurantMenu = async (
   }
 };
 
+export const getMostOrderedItems = async (
+  restaurantId: string | number,
+  limit: number = 5
+): Promise<{
+  items: Array<{
+    itemId: string;
+    count: number;
+    name: string;
+    price: number;
+  }>;
+  totalOrders: number;
+  totalSales: number;
+}> => {
+  try {
+    const response = await axios.get(
+      `${apiUrl}/restaurant/most-ordered-items`,
+      {
+        params: { restaurantId, limit },
+      }
+    );
+
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+
+    throw new Error(
+      response.data.error || "Failed to fetch most ordered items"
+    );
+  } catch (error) {
+    console.error("Error fetching most ordered items:", error);
+    throw error;
+  }
+};
+
 export const updateRestaurantOnlineStatus = async (
   restaurantId: string | number,
   adminUsername: string
@@ -350,6 +384,66 @@ export const updateBSCBaseDepositAddress = async (
     throw new Error("Failed to update BSC Base deposit address");
   } catch (error) {
     console.error("Error updating BSC Base deposit address:", error);
+    throw error;
+  }
+};
+
+export const getDeliveryAgents = async (
+  restaurantId: string | number
+): Promise<
+  Array<{
+    id: string;
+    username: string;
+    isOnline: boolean;
+    currentOrder?: string;
+    totalDeliveries: number;
+  }>
+> => {
+  try {
+    const response = await axios.get(`${apiUrl}/restaurant/getDeliveryAgents`, {
+      params: { restaurantId: restaurantId.toString() },
+    });
+
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+
+    throw new Error(response.data.error || "Failed to fetch delivery agents");
+  } catch (error) {
+    console.error("Error fetching delivery agents:", error);
+    throw error;
+  }
+};
+
+export const createDeliveryAgent = async (
+  restaurantId: string | number,
+  username: string,
+  password: string,
+  superadminUsername: string,
+  superadminPassword: string
+): Promise<{
+  id: string;
+  username: string;
+}> => {
+  try {
+    const response = await axios.post(
+      `${apiUrl}/restaurant/createDeliveryAgent`,
+      {
+        restaurantId,
+        username,
+        password,
+        superadminUsername,
+        superadminPassword,
+      }
+    );
+
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+
+    throw new Error(response.data.error || "Failed to create delivery agent");
+  } catch (error) {
+    console.error("Error creating delivery agent:", error);
     throw error;
   }
 };

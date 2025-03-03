@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   ShoppingBag,
   Menu as MenuIcon,
+  Bike,
   User,
   Wallet,
   HelpCircle,
@@ -22,9 +23,16 @@ import { validateRestaurantOnlineStatus } from "../utils/onlineValidation";
 interface LeftBarProps {
   isExpanded: boolean;
   setIsExpanded: (value: boolean) => void;
-  activeTab: "overview" | "orders" | "menu" | "profile" | "payments" | "help";
+  activeTab:
+    | "overview"
+    | "orders"
+    | "menu"
+    | "profile"
+    | "payments"
+    | "help"
+    | "delivery";
   setActiveTab: (
-    tab: "orders" | "menu" | "profile" | "payments" | "help"
+    tab: "orders" | "menu" | "profile" | "payments" | "help" | "delivery"
   ) => void;
   restaurantId?: number;
   isOnline?: boolean;
@@ -44,9 +52,9 @@ export function LeftBar({
   const { user } = useAuthStore();
 
   const navItems = [
-    { id: "overview", label: "Overview", icon: HelpCircle },
     { id: "orders", label: "Orders", icon: ShoppingBag },
     { id: "menu", label: "Menu", icon: MenuIcon },
+    { id: "delivery", label: "Delivery", icon: Bike },
     { id: "profile", label: "Profile", icon: User },
     { id: "payments", label: "Payments", icon: Wallet },
     { id: "help", label: "Help", icon: HelpCircle },
