@@ -14,7 +14,7 @@ interface AuthState {
     | "payments"
     | "help"
     | "settings"
-    | "overview";
+    | "delivery";
   setUser: (user: AuthUser | null) => void;
   setBSCBaseAddress: (address: string) => void;
   setActiveTab: (
@@ -25,7 +25,7 @@ interface AuthState {
       | "payments"
       | "help"
       | "settings"
-      | "overview"
+      | "delivery"
   ) => void;
   logout: () => void;
 }

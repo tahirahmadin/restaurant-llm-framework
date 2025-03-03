@@ -5,6 +5,7 @@ import { Orders } from "./components/Orders";
 import { Menu } from "./components/Menu";
 import { Profile } from "./components/Profile";
 import { Payments } from "./components/Payments";
+import { Delivery } from "./components/Delivery";
 import { Help } from "./components/Help";
 import { Toaster, toast } from "sonner";
 import { Settings } from "./components/Settings";
@@ -68,6 +69,16 @@ interface RestaurantDetails {
     extractedText?: string;
   };
 }
+
+type TabType =
+  | "overview"
+  | "orders"
+  | "menu"
+  | "delivery"
+  | "profile"
+  | "payments"
+  | "help"
+  | "settings";
 
 function App() {
   const { user } = useAuthStore();
@@ -187,6 +198,7 @@ function App() {
           {activeTab === "overview" && <Overview />}
           {activeTab === "orders" && <Orders />}
           {activeTab === "menu" && <Menu />}
+          {activeTab === "delivery" && <Delivery />}
           {activeTab === "profile" && <Profile />}
           {activeTab === "payments" && <Payments />}
           {activeTab === "help" && <Help />}

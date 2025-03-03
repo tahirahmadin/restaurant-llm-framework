@@ -1,17 +1,50 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { HelpCircle, ChevronRight, ArrowRight, Clock } from "lucide-react";
 import { useOrderStore } from "../services/orderService";
 import useAuthStore from "../store/useAuthStore";
-import { useEffect } from "react";
+import { getMostOrderedItems } from "../actions/serverActions";
+import { toast } from "sonner";
 
 export function Overview() {
   const { user } = useAuthStore();
   const { orders, loadOrders } = useOrderStore();
+  const [salesData, setSalesData] = useState<{
+    totalSales: number;
+    totalOrders: number;
+  }>({ totalSales: 0, totalOrders: 0 });
   const setActiveTab = useAuthStore((state) => state.setActiveTab);
+  const [popularDishes, setPopularDishes] = useState<
+    Array<{
+      itemId: string;
+      name: string;
+      count: number;
+      price: number;
+    }>
+  >([]);
+  const [isLoadingDishes, setIsLoadingDishes] = useState(true);
 
   useEffect(() => {
     if (user?.restaurantId) {
       loadOrders(user.restaurantId);
+
+      // Fetch most ordered items
+      const fetchPopularDishes = async () => {
+        try {
+          const resData = await getMostOrderedItems(user.restaurantId, 5);
+          setPopularDishes(resData.items);
+          setSalesData({
+            totalSales: resData.totalSales,
+            totalOrders: resData.totalOrders,
+          });
+        } catch (error) {
+          console.error("Error fetching popular dishes:", error);
+          toast.error("Failed to load popular dishes");
+        } finally {
+          setIsLoadingDishes(false);
+        }
+      };
+
+      fetchPopularDishes();
     }
   }, [user?.restaurantId, loadOrders]);
 
@@ -22,28 +55,20 @@ export function Overview() {
 
   const metrics = [
     {
-      value: "16,907",
+      value: salesData.totalSales.toLocaleString(),
       label: "Total sales in AED",
-      change: "+203",
-      period: "This Month",
     },
     {
       value: "1,300",
       label: "Highest sale in a day",
-      change: "+39",
-      period: "This Month",
     },
     {
-      value: "789",
+      value: salesData.totalOrders.toLocaleString(),
       label: "Completed orders",
-      change: "+132",
-      period: "This Month",
     },
     {
       value: "222",
       label: "Total customers",
-      change: "+34",
-      period: "This Month",
     },
   ];
 
@@ -154,104 +179,36 @@ export function Overview() {
         {/* Right Section */}
         <div className="space-y-6">
           {/* Players Card */}
-          <div className="bg-white p-6 rounded-3xl">
-            <div className="flex justify-between items-start">
+          <div className="bg-white p-6 rounded-3xl overflow-hidden">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
-                Most ordered items
+                Popular dishes
+                {isLoadingDishes && (
+                  <span className="text-sm text-gray-400">(Loading...)</span>
+                )}
               </h3>
             </div>
-            <div
-              key={12}
-              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mt-3"
-            >
-              <div
-                className={`h-33 w-33 rounded-xl flex items-center justify-center text-white font-medium
-                     bg-green-500`}
-              >
-                <img
-                  src="https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/1/1-5.jpg"
-                  className="rounded-xl h-16 w-16"
-                />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">Kunafa Donut</h4>
-                    <p className="text-sm text-gray-500">8 AED</p>
+            <div className="space-y-4">
+              {popularDishes.map((dish, index) => (
+                <div key={dish.itemId} className="flex items-center gap-4">
+                  <div className="w-8 text-gray-400 text-sm">
+                    {String(index + 1).padStart(2, "0")}
                   </div>
-
-                  <div className="flex flex-col justify-end items-center">
-                    <div
-                      className={`px-3 py-1 rounded-full text-sm
-                          bg-green-100 text-green-700`}
-                    >
-                      39 times
-                    </div>
+                  <div className="w-12 h-12 rounded-lg overflow-hidden">
+                    <img
+                      src={`https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/${user?.restaurantId}/${user?.restaurantId}-${dish.itemId}.jpg`}
+                      alt={dish.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-sm">{dish.name}</h4>
+                    <p className="text-sm text-gray-500">
+                      Orders: {dish.count}
+                    </p>
                   </div>
                 </div>
-              </div>
-            </div>
-            <div
-              key={12}
-              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mt-3"
-            >
-              <div
-                className={`h-33 w-33 rounded-xl flex items-center justify-center text-white font-medium
-                     bg-green-500`}
-              >
-                <img
-                  src="https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/1/1-5.jpg"
-                  className="rounded-xl h-16 w-16"
-                />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">Kunafa Donut</h4>
-                    <p className="text-sm text-gray-500">8 AED</p>
-                  </div>
-
-                  <div className="flex flex-col justify-end items-center">
-                    <div
-                      className={`px-3 py-1 rounded-full text-sm
-                          bg-green-100 text-green-700`}
-                    >
-                      39 times
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div
-              key={12}
-              className="flex items-center gap-4 p-4 bg-gray-50 rounded-xl mt-3"
-            >
-              <div
-                className={`h-33 w-33 rounded-xl flex items-center justify-center text-white font-medium
-                     bg-green-500`}
-              >
-                <img
-                  src="https://gobbl-restaurant-bucket.s3.ap-south-1.amazonaws.com/1/1-5.jpg"
-                  className="rounded-xl h-16 w-16"
-                />
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium">Kunafa Donut</h4>
-                    <p className="text-sm text-gray-500">8 AED</p>
-                  </div>
-
-                  <div className="flex flex-col justify-end items-center">
-                    <div
-                      className={`px-3 py-1 rounded-full text-sm
-                          bg-green-100 text-green-700`}
-                    >
-                      39 times
-                    </div>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
