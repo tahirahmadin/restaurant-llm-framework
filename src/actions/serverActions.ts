@@ -61,7 +61,8 @@ export const fetchRestaurantOrders = async (
 export const updateOrderStatus = async (
   orderId: string,
   status: "PROCESSING" | "COOKING" | "OUT_FOR_DELIVERY" | "COMPLETED",
-  estimatedDeliveryTime: number
+  estimatedDeliveryTime: number,
+  deliveryAgentId?: string
 ): Promise<Order[] | null> => {
   try {
     const response = await axios.post(
@@ -70,6 +71,7 @@ export const updateOrderStatus = async (
         orderId,
         status,
         estimatedDeliveryTime,
+        deliveryAgentId,
       }
     );
 
