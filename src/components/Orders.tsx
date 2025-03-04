@@ -30,6 +30,7 @@ export function Orders() {
     visible: boolean;
     order: Order | null;
     newStatus: string | null;
+    deliveryAgentId?: string;
   }>({ visible: false, order: null, newStatus: null });
 
   // Ensure that orders are initialized as an empty array in your store.
@@ -197,6 +198,7 @@ export function Orders() {
   const updateOrderStatus = async (order: Order, newStatus: string) => {
     setIsUpdating(true);
     try {
+      const deliveryAgentId = confirmModal.deliveryAgentId;
       const res = await updateOrderStatusAPI(
         order.orderId,
         newStatus as
@@ -204,7 +206,8 @@ export function Orders() {
           | "COOKING"
           | "OUT_FOR_DELIVERY"
           | "COMPLETED",
-        estimatedMinutes
+        estimatedMinutes,
+        deliveryAgentId
       );
       if (res) {
         setOrders(res);
@@ -222,8 +225,17 @@ export function Orders() {
     }
   };
 
-  const handleStatusChangeRequest = (order: Order, nextStatus: string) => {
-    setConfirmModal({ visible: true, order, newStatus: nextStatus });
+  const handleStatusChangeRequest = (
+    order: Order,
+    nextStatus: string,
+    deliveryAgentId?: string
+  ) => {
+    setConfirmModal({
+      visible: true,
+      order,
+      newStatus: nextStatus,
+      deliveryAgentId,
+    });
   };
 
   // Ensure orders is always treated as an array.

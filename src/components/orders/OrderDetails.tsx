@@ -1,7 +1,10 @@
 import React from "react";
-import { X, Loader2 } from "lucide-react";
+import { X, Loader2, User2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Order } from "./types";
+import { useState, useEffect } from "react";
+import { getDeliveryAgents } from "../../actions/serverActions";
+import { toast } from "sonner";
 
 interface OrderDetailsProps {
   selectedOrder: Order;
@@ -9,8 +12,19 @@ interface OrderDetailsProps {
   isUpdating: boolean;
   estimatedMinutes: number;
   setEstimatedMinutes: (minutes: number) => void;
-  handleStatusChangeRequest: (order: Order, newStatus: string) => void;
+  handleStatusChangeRequest: (
+    order: Order,
+    newStatus: string,
+    deliveryAgentId?: string
+  ) => void;
   restaurantId: string | number;
+}
+
+interface DeliveryAgent {
+  _id: string;
+  username: string;
+  isActive: boolean;
+  isEngaged: boolean;
 }
 
 export const OrderDetails: React.FC<OrderDetailsProps> = ({
@@ -22,6 +36,30 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({
   handleStatusChangeRequest,
   restaurantId,
 }) => {
+  const [deliveryAgents, setDeliveryAgents] = useState<DeliveryAgent[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<string>("");
+  const [loadingAgents, setLoadingAgents] = useState(false);
+
+  useEffect(() => {
+    if (selectedOrder.status === "COOKING") {
+      loadDeliveryAgents();
+    }
+  }, [selectedOrder.status]);
+
+  const loadDeliveryAgents = async () => {
+    setLoadingAgents(true);
+    try {
+      const agents = await getDeliveryAgents(restaurantId);
+      setDeliveryAgents(
+        agents.filter((agent) => agent.isActive && !agent.isEngaged)
+      );
+    } catch (error) {
+      toast.error("Failed to load delivery agents");
+    } finally {
+      setLoadingAgents(false);
+    }
+  };
+
   return (
     <div className="fixed inset-y-0 right-0 w-[30%] bg-white shadow-xl transform transition-transform duration-300 ease-in-out overflow-y-auto">
       <AnimatePresence mode="wait">
@@ -117,14 +155,8 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({
                 </label>
                 <input
                   type="number"
-                  min="1"
-                  max="120"
                   value={estimatedMinutes}
-                  onChange={(e) =>
-                    setEstimatedMinutes(
-                      Math.max(1, parseInt(e.target.value) || 1)
-                    )
-                  }
+                  onChange={(e) => setEstimatedMinutes(e.target.value)}
                   className="w-full p-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-red-600"
                   required
                 />
@@ -155,21 +187,71 @@ export const OrderDetails: React.FC<OrderDetailsProps> = ({
                 )}
               </button>
             )}
+            {selectedOrder.status === "COOKING" && (
+              <div>
+                {deliveryAgents.length > 0 ? (
+                  <div className="mt-4 space-y-3">
+                    <h4 className="font-medium text-gray-700">
+                      Select Delivery Agent
+                    </h4>
+                    <div className="grid grid-cols-1 gap-2">
+                      {deliveryAgents.map((agent) => (
+                        <button
+                          key={agent._id}
+                          onClick={() => setSelectedAgent(agent._id)}
+                          className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                            selectedAgent === agent._id
+                              ? "border-blue-500 bg-blue-50"
+                              : "border-gray-200 hover:border-blue-200"
+                          }`}
+                        >
+                          <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <User2 className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <div className="flex-1 text-left">
+                            <p className="font-medium text-gray-900">
+                              {agent.username}
+                            </p>
+                            <p className="text-sm text-green-600">Available</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : loadingAgents ? (
+                  <div className="mt-4 text-center text-gray-500">
+                    Loading available agents...
+                  </div>
+                ) : (
+                  <div className="mt-4 text-center text-gray-500">
+                    No delivery agents available
+                  </div>
+                )}
+              </div>
+            )}
 
             {selectedOrder.status === "COOKING" && (
-              <button
-                onClick={() =>
-                  handleStatusChangeRequest(selectedOrder, "OUT_FOR_DELIVERY")
-                }
-                disabled={isUpdating}
-                className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                {isUpdating ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  "Send for Delivery"
-                )}
-              </button>
+              <>
+                <button
+                  onClick={() =>
+                    selectedAgent
+                      ? handleStatusChangeRequest(
+                          selectedOrder,
+                          "OUT_FOR_DELIVERY",
+                          selectedAgent
+                        )
+                      : toast.error("Please select a delivery agent")
+                  }
+                  disabled={isUpdating}
+                  className="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                >
+                  {isUpdating ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    "Send for Delivery"
+                  )}
+                </button>
+              </>
             )}
 
             {selectedOrder.status === "OUT_FOR_DELIVERY" && (
