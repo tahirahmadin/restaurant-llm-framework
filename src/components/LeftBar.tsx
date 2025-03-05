@@ -11,6 +11,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   Power,
+  LayoutDashboardIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -32,7 +33,14 @@ interface LeftBarProps {
     | "help"
     | "delivery";
   setActiveTab: (
-    tab: "orders" | "menu" | "profile" | "payments" | "help" | "delivery"
+    tab:
+      | "overview"
+      | "orders"
+      | "menu"
+      | "profile"
+      | "payments"
+      | "help"
+      | "delivery"
   ) => void;
   restaurantId?: number;
   isOnline?: boolean;
@@ -52,6 +60,7 @@ export function LeftBar({
   const { user } = useAuthStore();
 
   const navItems = [
+    { id: "overview", label: "Overview", icon: LayoutDashboardIcon },
     { id: "orders", label: "Orders", icon: ShoppingBag },
     { id: "menu", label: "Menu", icon: MenuIcon },
     { id: "delivery", label: "Delivery", icon: Bike },
