@@ -10,8 +10,8 @@ import {
 interface DeliveryAgent {
   id: string;
   username: string;
-  isOnline: boolean;
-  currentOrder?: string;
+  isActive: boolean;
+  isEngaged: boolean;
   totalOrders: number;
 }
 
@@ -53,6 +53,12 @@ export function Delivery() {
       return;
     }
 
+    const superadminPassword = localStorage.getItem("superadminPassword");
+    if (!superadminPassword) {
+      toast.error("Authentication error. Please try logging in again.");
+      return;
+    }
+
     setIsCreating(true);
     try {
       await createDeliveryAgent(
@@ -60,7 +66,7 @@ export function Delivery() {
         newAgent.username,
         newAgent.password,
         user.username,
-        "123456" // Password will be handled by auth store
+        superadminPassword
       );
 
       toast.success("Delivery agent created successfully");
@@ -108,20 +114,20 @@ export function Delivery() {
           >
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                <User2 className="w-6 h-6 text-gray-600" />
+                <img src="https://www.shareicon.net/data/512x512/2016/04/10/747353_people_512x512.png" />
               </div>
               <div>
                 <h3 className="font-medium text-gray-900">{agent.username}</h3>
                 <div className="flex items-center gap-2 mt-1">
-                  {agent.isOnline ? (
+                  {agent.isActive ? (
                     <span className="flex items-center gap-1 text-sm text-green-600">
                       <CheckCircle2 className="w-4 h-4" />
-                      Online
+                      Available
                     </span>
                   ) : (
                     <span className="flex items-center gap-1 text-sm text-gray-500">
                       <XCircle className="w-4 h-4" />
-                      Offline
+                      Unavailable
                     </span>
                   )}
                 </div>
@@ -130,9 +136,9 @@ export function Delivery() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between py-2 border-t border-gray-100">
-                <span className="text-sm text-gray-600">Current Order</span>
+                <span className="text-sm text-gray-600">Status</span>
                 <span className="text-sm font-medium">
-                  {agent.currentOrder || "None"}
+                  {agent.isEngaged ? "Engaged" : "Free"}
                 </span>
               </div>
               <div className="flex items-center justify-between py-2 border-t border-gray-100">
@@ -147,11 +153,16 @@ export function Delivery() {
       {/* Create Agent Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-[400px] max-w-lg mx-4">
+          <div className="bg-white rounded-xl p-6 w-[500px] max-w-lg mx-4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Add New Agent
-              </h2>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Add New Delivery Agent
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Create credentials for your delivery staff
+                </p>
+              </div>
               <button
                 onClick={() => setShowCreateModal(false)}
                 className="text-gray-500 hover:text-gray-700"
@@ -160,10 +171,25 @@ export function Delivery() {
               </button>
             </div>
 
+            <div className="mb-6 flex items-center justify-center">
+              <img
+                src="https://img.freepik.com/free-vector/delivery-service-illustrated_23-2148505081.jpg?w=740&t=st=1706548171~exp=1706548771~hmac=8e4d9fe6577e8e815c834b9ca43dd0f8c211d55285663e8ca7f7d97ee23f7e6b"
+                alt="Delivery Agent"
+                className="w-48 h-48 object-contain"
+              />
+            </div>
+
             <form onSubmit={handleCreateAgent} className="space-y-4">
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-6">
+                <p className="text-sm text-blue-700">
+                  Create secure credentials for your delivery agent. They will
+                  use these to log into their delivery app.
+                </p>
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Username
+                  Username <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -176,13 +202,16 @@ export function Delivery() {
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                  placeholder="Enter username"
+                  placeholder="e.g., john_delivery"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose a unique username for the delivery agent
+                </p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Password
+                  Password <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -195,8 +224,11 @@ export function Delivery() {
                     }))
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent"
-                  placeholder="Enter password"
+                  placeholder="Enter a strong password"
                 />
+                <p className="text-xs text-gray-500 mt-1">
+                  Minimum 8 characters with numbers and special characters
+                </p>
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
