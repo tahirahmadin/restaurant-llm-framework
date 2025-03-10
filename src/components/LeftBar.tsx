@@ -7,6 +7,7 @@ import {
   Wallet,
   HelpCircle,
   Settings,
+  Store,
   LogOut,
   PanelLeftClose,
   PanelLeft,
@@ -19,6 +20,7 @@ import {
   updateRestaurantOnlineStatus,
 } from "../actions/serverActions";
 import useAuthStore from "../store/useAuthStore";
+import useRestaurantStore from "../store/useRestaurantStore";
 import { validateRestaurantOnlineStatus } from "../utils/onlineValidation";
 
 interface LeftBarProps {
@@ -28,6 +30,7 @@ interface LeftBarProps {
     | "overview"
     | "orders"
     | "menu"
+    | "services"
     | "profile"
     | "payments"
     | "help"
@@ -37,6 +40,7 @@ interface LeftBarProps {
       | "overview"
       | "orders"
       | "menu"
+      | "services"
       | "profile"
       | "payments"
       | "help"
@@ -44,7 +48,6 @@ interface LeftBarProps {
   ) => void;
   restaurantId?: number;
   isOnline?: boolean;
-  setRestaurantDetails?: (details: any) => void;
 }
 
 export function LeftBar({
@@ -54,10 +57,10 @@ export function LeftBar({
   setActiveTab,
   restaurantId,
   isOnline = false,
-  setRestaurantDetails,
 }: LeftBarProps) {
   const logout = useAuthStore((state) => state.logout);
   const { user } = useAuthStore();
+  const { profile, setProfile } = useRestaurantStore();
 
   const navItems = [
     { id: "overview", label: "Overview", icon: LayoutDashboardIcon },
@@ -65,12 +68,12 @@ export function LeftBar({
     { id: "menu", label: "Menu", icon: MenuIcon },
     { id: "delivery", label: "Delivery", icon: Bike },
     { id: "profile", label: "Profile", icon: User },
+    { id: "services", label: "Services", icon: Store },
     { id: "payments", label: "Payments", icon: Wallet },
     { id: "help", label: "Help", icon: HelpCircle },
   ];
 
   const toggleOnlineStatus = async () => {
-    console.log(restaurantId);
     if (!user?.restaurantId) {
       toast.error("Restaurant ID not found");
       return;
@@ -82,10 +85,8 @@ export function LeftBar({
     }
 
     try {
-      const restaurantProfile = await getRestaurantProfile(user.restaurantId);
-
       // Validate the profile directly since it has all required fields
-      const validation = validateRestaurantOnlineStatus(restaurantProfile);
+      const validation = validateRestaurantOnlineStatus(profile!);
 
       if (!validation.isValid) {
         toast.error(validation.message);
@@ -97,15 +98,15 @@ export function LeftBar({
         user.username
       );
 
-      if (setRestaurantDetails) {
-        setRestaurantDetails((prev: any) => ({
-          ...prev,
-          isOnline: result.isOnline,
-        }));
-        toast.success(
-          `Restaurant is now ${result.isOnline ? "online" : "offline"}`
-        );
-      }
+      // Update profile in store
+      setProfile({
+        ...profile!,
+        isOnline: result.isOnline,
+      });
+
+      toast.success(
+        `Restaurant is now ${result.isOnline ? "online" : "offline"}`
+      );
     } catch (error) {
       console.error("Error updating restaurant status:", error);
       toast.error("Failed to update restaurant status");
@@ -147,7 +148,7 @@ export function LeftBar({
             }`}
           >
             <Power className={`w-5 h-5 ${isExpanded ? "mr-3" : ""}`} />
-            {isExpanded && <span>{isOnline ? "Online" : "Online"}</span>}
+            {isExpanded && <span>{isOnline ? "Online" : "Offline"}</span>}
           </button>
         </div>
 
@@ -159,7 +160,7 @@ export function LeftBar({
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => setActiveTab(item.id as any)}
                   className={`w-[80%] flex items-center px-3 py-2 rounded-lg transition-colors ${
                     activeTab === item.id
                       ? "bg-[#DA3642] text-white"

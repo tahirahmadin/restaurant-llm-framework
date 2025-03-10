@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import MyDropzone from "./MyDropzone";
-import { API_URL } from "../config";
 
 interface FileState {
   File: File | null;
@@ -55,6 +54,39 @@ interface SettingsProps {
   onMenuProcessed: (data: MenuItem[]) => void;
 }
 
+const updatePaymentOperationModes = async (
+  restaurantId: number,
+  paymentModes: PaymentModes,
+  operationModes: OperationModes,
+  adminUsername: string
+) => {
+  try {
+    const response = await fetch(
+      `${API_URL}/restaurant/updatePaymentOperationModes`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          restaurantId,
+          paymentModes,
+          operationModes,
+          adminUsername,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to update settings");
+    }
+
+    return await response.json();
+  } catch (error) {
+    throw error;
+  }
+};
+
 export function Settings({
   showSetup,
   setShowSetup,
@@ -89,7 +121,9 @@ export function Settings({
     <div className="p-6 lg:p-8 bg-white min-h-screen overflow-auto">
       <div className="max-w-3xl mx-auto bg-white">
         <div className="bg-white rounded-2xl shadow-md p-6 border border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Menu</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Upload Menu
+          </h2>
           {restaurantDetails.restaurantId ? (
             <MyDropzone
               FileUpload={{

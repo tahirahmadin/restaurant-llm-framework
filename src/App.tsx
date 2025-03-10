@@ -5,182 +5,27 @@ import { Orders } from "./components/Orders";
 import { Menu } from "./components/Menu";
 import { Profile } from "./components/Profile";
 import { Payments } from "./components/Payments";
+import { Services } from "./components/Services";
 import { Delivery } from "./components/Delivery";
 import { Help } from "./components/Help";
-import { Toaster, toast } from "sonner";
-import { Settings } from "./components/Settings";
+import { Toaster } from "sonner";
 import { AuthWrapper } from "./components/auth/AuthWrapper";
 import useAuthStore from "./store/useAuthStore";
-
-interface Message {
-  id: string;
-  content: string;
-  type: "user" | "bot";
-  timestamp: Date;
-}
-
-interface MenuItem {
-  id: number;
-  name: string;
-  description: string;
-  category: string;
-  price: number;
-  image: string;
-  spicinessLevel: number;
-  sweetnessLevel: number;
-  dietaryPreference: string[];
-  healthinessScore: number;
-  caffeineLevel: string;
-  sufficientFor: number;
-  available: boolean;
-}
-
-interface AddOnItem {
-  name: string;
-  price: number;
-}
-
-interface AddOnCategory {
-  categoryName: string;
-  minQuantity: number;
-  maxQuantity: number;
-  items: AddOnItem[];
-}
-
-interface ItemCustomisation {
-  id: number;
-  customisation: {
-    categories: AddOnCategory[];
-  };
-}
-
-interface RestaurantDetails {
-  restaurantId?: number;
-  name: string;
-  contactNo: string;
-  address: string;
-  location?: {
-    longitude: number;
-    latitude: number;
-  };
-  isOnline?: boolean;
-  menu?: {
-    File?: File | null;
-    extractedText?: string;
-  };
-}
-
-type TabType =
-  | "overview"
-  | "orders"
-  | "menu"
-  | "delivery"
-  | "profile"
-  | "payments"
-  | "help"
-  | "settings";
+import useRestaurantStore from "./store/useRestaurantStore";
 
 function App() {
   const { user } = useAuthStore();
   const activeTab = useAuthStore((state) => state.activeTab);
   const setActiveTab = useAuthStore((state) => state.setActiveTab);
   const [isExpanded, setIsExpanded] = useState(true);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState("");
-  const [setupStep, setSetupStep] = useState(1);
-  const [showSetup, setShowSetup] = useState(true);
+  const { profile, loadProfile } = useRestaurantStore();
 
-  // Initialize menuItems from localStorage
-  const [menuItems, setMenuItems] = useState<MenuItem[]>(() => {
-    const savedMenu = localStorage.getItem("restaurantMenu");
-    return savedMenu ? JSON.parse(savedMenu) : [];
-  });
-
-  // Initialize customisations from localStorage
-  const [customisations, setCustomisations] = useState<ItemCustomisation[]>(
-    () => {
-      const savedCustomisations = localStorage.getItem("customisations");
-      return savedCustomisations ? JSON.parse(savedCustomisations) : [];
-    }
-  );
-
-  // Initialize restaurantDetails from localStorage
-  const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(
-    () => {
-      if (user?.restaurantId) {
-        const savedDetails = localStorage.getItem("restaurantDetails");
-        return savedDetails
-          ? JSON.parse(savedDetails)
-          : {
-              restaurantId: user.restaurantId,
-              name: "",
-              contactNo: "",
-              address: "",
-              isOnline: false,
-              menuUploaded: false,
-              menu: { File: null, extractedText: "" },
-            };
-      }
-      return {
-        name: "",
-        contactNo: "",
-        address: "",
-        isOnline: false,
-        menuUploaded: false,
-        menu: { File: null, extractedText: "" },
-      };
-    }
-  );
-
-  // **Merging customisations with menuItems**
-  const getMergedCustomisations = () => {
-    return menuItems.map((item) => {
-      const found = customisations.find((c) => c.id === item.id);
-      return {
-        ...item,
-        is_customized: !!found?.customisation.categories.length,
-        customisation: found ? found.customisation : { categories: [] },
-      };
-    });
-  };
-
-  // **Updating localStorage in real-time**
   useEffect(() => {
-    localStorage.setItem("restaurantMenu", JSON.stringify(menuItems));
-    localStorage.setItem("customisations", JSON.stringify(customisations));
-    localStorage.setItem(
-      "restaurantDetails",
-      JSON.stringify(restaurantDetails)
-    );
-    localStorage.setItem(
-      "mergedCustomisations",
-      JSON.stringify(getMergedCustomisations())
-    );
-  }, [menuItems, customisations, restaurantDetails]);
-
-  const handleMenuData = (data: MenuItem[]) => {
-    try {
-      setMenuItems(data);
-      toast.success("Menu data processed successfully!");
-    } catch (error) {
-      console.error("Error processing menu data:", error);
-      toast.error("Failed to process menu data");
+    if (user?.restaurantId) {
+      loadProfile(user.restaurantId);
     }
-  };
+  }, [user?.restaurantId, loadProfile]);
 
-  const handleMenuUpdate = (
-    updatedMenu: MenuItem[],
-    updatedCustomisations: ItemCustomisation[]
-  ) => {
-    try {
-      setMenuItems(updatedMenu);
-      setCustomisations(updatedCustomisations);
-      toast.success("Menu and customisations updated successfully!");
-    } catch (error) {
-      console.error("Error saving menu update:", error);
-      toast.error("Failed to save menu changes");
-    }
-  };
   return (
     <AuthWrapper>
       <div className="flex h-screen bg-[#F1F1F1] overflow-hidden">
@@ -190,9 +35,8 @@ function App() {
           setIsExpanded={setIsExpanded}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          restaurantId={restaurantDetails.restaurantId}
-          isOnline={restaurantDetails.isOnline}
-          setRestaurantDetails={setRestaurantDetails}
+          restaurantId={profile?.restaurantId}
+          isOnline={profile?.isOnline}
         />
         <div className="flex-1 flex flex-col overflow-y-auto">
           {activeTab === "overview" && <Overview />}
@@ -201,6 +45,7 @@ function App() {
           {activeTab === "delivery" && <Delivery />}
           {activeTab === "profile" && <Profile />}
           {activeTab === "payments" && <Payments />}
+          {activeTab === "services" && <Services />}
           {activeTab === "help" && <Help />}
         </div>
       </div>

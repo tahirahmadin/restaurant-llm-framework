@@ -36,6 +36,46 @@ interface CustomerDetails {
   email?: string;
 }
 
+interface PaymentModes {
+  CRYPTO: boolean;
+  STRIPE: boolean;
+  UPI: boolean;
+  COUNTER: boolean;
+}
+
+interface OperationModes {
+  DINE_IN: boolean;
+  DELIVERY: boolean;
+}
+
+export const updatePaymentOperationModes = async (
+  restaurantId: number,
+  paymentModes: PaymentModes,
+  operationModes: OperationModes,
+  adminUsername: string
+): Promise<{ success: boolean }> => {
+  try {
+    const response = await axios.post(
+      `${apiUrl}/restaurant/updatePaymentOperationModes`,
+      {
+        restaurantId,
+        paymentModes,
+        operationModes,
+        adminUsername,
+      }
+    );
+
+    if (response.data && !response.data.error) {
+      return { success: true };
+    }
+
+    throw new Error(response.data.error || "Failed to update settings");
+  } catch (error) {
+    console.error("Error updating payment and operation modes:", error);
+    throw error;
+  }
+};
+
 export const fetchRestaurantOrders = async (
   restaurantId: string | number
 ): Promise<Order[]> => {

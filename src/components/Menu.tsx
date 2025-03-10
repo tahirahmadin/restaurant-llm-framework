@@ -1,13 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import MenuManagement from "./MenuManagement";
 import { Settings } from "./Settings";
 import { toast } from "sonner";
 import useAuthStore from "../store/useAuthStore";
-import {
-  getRestaurantMenu,
-  getRestaurantProfile,
-  type RestaurantProfile,
-} from "../actions/serverActions";
+import useRestaurantStore from "../store/useRestaurantStore";
+import useMenuStore from "../store/useMenuStore";
 
 interface MenuItem {
   id: number;
@@ -44,106 +41,41 @@ interface ItemCustomisation {
   };
 }
 
-interface RestaurantDetails {
-  restaurantId: number;
-  name: string;
-  contactNo: string;
-  address: string;
-  location?: {
-    type?: string;
-    coordinates: [number, number];
-  };
-  menuUploaded?: boolean;
-  menu?: {
-    File?: File | null;
-    extractedText?: string;
-  };
-}
-
 export function Menu() {
   const { user } = useAuthStore();
-
-  // Add state for restaurant profile
-  const [restaurantProfile, setRestaurantProfile] =
-    useState<RestaurantProfile | null>(null);
-
-  // Initialize restaurantDetails from localStorage or default
-  const [restaurantDetails, setRestaurantDetails] = useState<RestaurantDetails>(
-    () => {
-      const saved = localStorage.getItem("restaurantDetails");
-      return saved
-        ? JSON.parse(saved)
-        : {
-            restaurantId: user?.restaurantId,
-            name: "",
-            contactNo: "",
-            address: "",
-            menuUploaded: false,
-            menu: { File: null, extractedText: "" },
-          };
-    }
-  );
-
-  // Initialize menuItems state and loading indicator
-  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const { profile, isLoading: isLoadingProfile } = useRestaurantStore();
+  const {
+    items: menuItems,
+    isLoading: isLoadingMenu,
+    loadMenu,
+  } = useMenuStore();
   const [customisations, setCustomisations] = useState<ItemCustomisation[]>([]);
 
-  // Update restaurantDetails.menuUploaded based on profile
   useEffect(() => {
-    const checkMenuStatus = async () => {
-      if (!user?.restaurantId) {
-        toast.error("Restaurant ID not found");
-        return;
-      }
-      try {
-        const profile = await getRestaurantProfile(user.restaurantId);
-        setRestaurantProfile(profile);
-        setRestaurantDetails((prev) => ({
-          ...prev,
-          menuUploaded: profile.menuUploaded,
+    if (user?.restaurantId) {
+      loadMenu(user.restaurantId);
+    }
+  }, [user?.restaurantId, loadMenu]);
+
+  useEffect(() => {
+    if (menuItems.length > 0) {
+      const customisations = menuItems
+        .filter((item) => item.isCustomisable)
+        .map((item) => ({
+          id: item.id,
+          customisation: item.customisation,
         }));
-        setIsLoadingProfile(false);
-      } catch (error) {
-        console.error("Error fetching restaurant profile:", error);
-      }
-    };
-    checkMenuStatus();
-  }, [user?.restaurantId]);
-
-  const fetchMenu = useCallback(async () => {
-    if (!user?.restaurantId) {
-      toast.error("Restaurant ID not found");
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const menu = await getRestaurantMenu(user.restaurantId);
-      setMenuItems(menu);
-
-      const customisations = menu
-      .filter(item => item.isCustomisable)
-      .map(item => ({
-        id: item.id,
-        customisation: item.customisation
-      }));
-    
       setCustomisations(customisations);
-    } catch (error) {
-      console.error("Error fetching menu:", error);
-    } finally {
-      setIsLoading(false);
     }
-  }, [user?.restaurantId]);
-
-  useEffect(() => {
-    fetchMenu();
-  }, [fetchMenu]);
+  }, [menuItems]);
 
   const handleMenuData = (data: MenuItem[]) => {
     try {
-      setMenuItems(data);
+      useMenuStore.getState().setItems(data);
+      useRestaurantStore.getState().setProfile({
+        ...profile!,
+        menuUploaded: true,
+      });
       toast.success("Menu data processed successfully!");
     } catch (error) {
       console.error("Error processing menu data:", error);
@@ -156,7 +88,8 @@ export function Menu() {
     updatedCustomisations: ItemCustomisation[]
   ) => {
     try {
-      setMenuItems(updatedMenu);
+      useMenuStore.getState().setItems(updatedMenu);
+      setCustomisations(updatedCustomisations);
       toast.success("Menu and customisations updated successfully!");
     } catch (error) {
       console.error("Error saving menu update:", error);
@@ -164,7 +97,7 @@ export function Menu() {
     }
   };
 
-  if (isLoading || isLoadingProfile) {
+  if (isLoadingMenu || isLoadingProfile) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-gray-500">Loading menu...</div>
@@ -172,16 +105,30 @@ export function Menu() {
     );
   }
 
-  // Instead of a separate state, we now check restaurantDetails.menuUploaded.
-  if (!restaurantDetails.menuUploaded) {
+  if (!profile?.menuUploaded) {
     return (
       <Settings
         showSetup={true}
         setShowSetup={() => {}}
         setupStep={1}
         setSetupStep={() => {}}
-        restaurantDetails={restaurantDetails}
-        setRestaurantDetails={setRestaurantDetails}
+        restaurantDetails={{
+          restaurantId: user?.restaurantId,
+          name: profile?.name || "",
+          description: profile?.description || "",
+          image: profile?.image || "",
+          contactNo: profile?.contactNo || "",
+          address: profile?.address || "",
+          menuUploaded: profile?.menuUploaded || false,
+        }}
+        setRestaurantDetails={(details) => {
+          if (profile) {
+            useRestaurantStore.getState().setProfile({
+              ...profile,
+              ...details,
+            });
+          }
+        }}
         onMenuProcessed={handleMenuData}
       />
     );
@@ -190,7 +137,7 @@ export function Menu() {
   return (
     <MenuManagement
       restaurantId={user?.restaurantId || 0}
-      restaurantName={restaurantProfile?.name || ""}
+      restaurantName={profile?.name || ""}
       initialMenuData={menuItems}
       initialCustomisations={customisations}
       onClose={() => {}}
