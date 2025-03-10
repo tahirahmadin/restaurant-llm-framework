@@ -88,6 +88,7 @@ export function Menu() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [customisations, setCustomisations] = useState<ItemCustomisation[]>([]);
 
   // Update restaurantDetails.menuUploaded based on profile
   useEffect(() => {
@@ -120,6 +121,15 @@ export function Menu() {
     try {
       const menu = await getRestaurantMenu(user.restaurantId);
       setMenuItems(menu);
+
+      const customisations = menu
+      .filter(item => item.isCustomisable)
+      .map(item => ({
+        id: item.id,
+        customisation: item.customisation
+      }));
+
+      setCustomisations(customisations);
     } catch (error) {
       console.error("Error fetching menu:", error);
     } finally {
@@ -182,7 +192,7 @@ export function Menu() {
       restaurantId={user?.restaurantId || 0}
       restaurantName={restaurantProfile?.name || ""}
       initialMenuData={menuItems}
-      initialCustomisations={[]}
+      initialCustomisations={customisations}
       onClose={() => {}}
       onUpdate={handleMenuUpdate}
     />
