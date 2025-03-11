@@ -8,7 +8,6 @@ import useRestaurantStore from "../store/useRestaurantStore";
 interface PaymentModes {
   CRYPTO: boolean;
   STRIPE: boolean;
-  UPI: boolean;
   COUNTER: boolean;
 }
 
@@ -20,12 +19,18 @@ interface OperationModes {
 export function Services() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { user } = useAuthStore();
-  const { profile, isLoading, loadProfile } = useRestaurantStore();
+  const { profile, isLoading, loadProfile, setProfile } = useRestaurantStore();
   const [paymentModes, setPaymentModes] = useState<PaymentModes>({
     CRYPTO: false,
     STRIPE: false,
-    UPI: false,
     COUNTER: true,
+  });
+  const [disabledPayments, setDisabledPayments] = useState<{
+    CRYPTO: boolean;
+    STRIPE: boolean;
+  }>({
+    CRYPTO: true,
+    STRIPE: true,
   });
   const [operationModes, setOperationModes] = useState<OperationModes>({
     DINE_IN: true,
@@ -41,6 +46,10 @@ export function Services() {
   useEffect(() => {
     if (profile) {
       setPaymentModes(profile.paymentModes);
+      setDisabledPayments({
+        CRYPTO: !profile.bscBaseDepositAddress,
+        STRIPE: !profile.stripeAccountId,
+      });
       setOperationModes(profile.operationModes);
     }
   }, [profile]);
@@ -99,26 +108,53 @@ export function Services() {
                     <p className="font-medium text-gray-900">
                       {mode.replace("_", " ")}
                     </p>
-                    <p className="text-sm text-gray-500">
-                      {mode === "CRYPTO" && "Accept cryptocurrency payments"}
-                      {mode === "STRIPE" && "Accept credit/debit card payments"}
-                      {mode === "UPI" && "Accept UPI payments"}
-                      {mode === "COUNTER" && "Accept cash payments"}
-                    </p>
+                    <div>
+                      <p className="text-sm text-gray-500">
+                        {mode === "CRYPTO" && "Accept cryptocurrency payments"}
+                        {mode === "STRIPE" &&
+                          "Accept credit/debit card payments"}
+
+                        {mode === "COUNTER" && "Accept cash payments"}
+                      </p>
+                      {mode === "CRYPTO" && disabledPayments.CRYPTO && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Set up BSC Base address in Payments to enable
+                        </p>
+                      )}
+                      {mode === "STRIPE" && disabledPayments.STRIPE && (
+                        <p className="text-xs text-red-500 mt-1">
+                          Complete Stripe KYC in Payments to enable
+                        </p>
+                      )}
+                    </div>
                   </div>
                   <div className="relative">
                     <input
                       type="checkbox"
                       checked={enabled}
                       onChange={() =>
-                        setPaymentModes((prev) => ({
-                          ...prev,
-                          [mode]: !prev[mode as keyof PaymentModes],
-                        }))
+                        (mode === "CRYPTO" && disabledPayments.CRYPTO) ||
+                        (mode === "STRIPE" && disabledPayments.STRIPE)
+                          ? null
+                          : setPaymentModes((prev) => ({
+                              ...prev,
+                              [mode]: !prev[mode as keyof PaymentModes],
+                            }))
+                      }
+                      disabled={
+                        (mode === "CRYPTO" && disabledPayments.CRYPTO) ||
+                        (mode === "STRIPE" && disabledPayments.STRIPE)
                       }
                       className="sr-only peer"
                     />
-                    <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:bg-red-600 after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+                    <div
+                      className={`w-11 h-6 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                        (mode === "CRYPTO" && disabledPayments.CRYPTO) ||
+                        (mode === "STRIPE" && disabledPayments.STRIPE)
+                          ? "bg-gray-100 cursor-not-allowed"
+                          : "bg-gray-200 peer-checked:bg-red-600"
+                      }`}
+                    ></div>
                   </div>
                 </label>
               ))}
