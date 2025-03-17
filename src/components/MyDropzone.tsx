@@ -9,6 +9,7 @@ import { API_URL } from "../config";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/build/pdf";
 import "pdfjs-dist/build/pdf.worker.entry";
 import useAuthStore from "../store/useAuthStore";
+import { generateLLMResponse } from "../actions/serverActions";
 
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js`;
 
@@ -38,6 +39,23 @@ interface MyDropzoneProps {
   onMenuProcessed: (menuItems: MenuItem[]) => void;
   restaurantId: number;
 }
+
+// Utility function to add a timeout to a promise
+const withTimeout = <T,>(promise: Promise<T>, ms: number): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error("Request timed out"));
+    }, ms);
+    promise
+      .then((res) => {
+        clearTimeout(timer);
+        resolve(res);
+      })
+      .catch((err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
+  });
 
 const MyDropzone: React.FC<MyDropzoneProps> = ({
   FileUpload = { File: null, extractedText: "" },
@@ -98,34 +116,23 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({
       toast.success("Text extraction complete!");
     } catch (error) {
       setError(error instanceof Error ? error.message : "Error processing file.");
-      toast.error(`File processing failed: ${error instanceof Error ? error.message : "Unknown error"}`);
+      toast.error(
+        `File processing failed: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
     }
     return extractedText;
   };
 
-  const OPENAI_KEY = import.meta.env.VITE_PUBLIC_OPENAI_API_KEY;
-
   const processBasicJSON = async (textContent: string) => {
     setProcessingStep("Creating basic JSON structure...");
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: `You are a precise JSON converter for menu items. Your response must be ONLY a raw JSON array without any markdown formatting, code blocks, or additional text. Never include \`\`\`json or \`\`\` markers.
-
+      const prompt = `You are a precise JSON converter for menu items. Your response must be ONLY a raw JSON array without any markdown formatting, code blocks, or additional text. Never include any code block markers.
+  
 Convert menu items to a JSON array where each item has this exact structure:
 {
   "id": (auto-increment starting from 1),
   "name": (item name as string),
-  "description": (brief item description as string(10-15 words)),
+  "description": (brief item description as string (10-15 words)),
   "category": (derive from context, e.g., "Desserts", "Beverages", etc.),
   "price": (number only, no currency symbols)
 }
@@ -138,25 +145,22 @@ Rules:
 5. Use consistent category names
 6. Auto-generate IDs starting from 1
 7. If price is not provided, use 0
-8. Clean and normalize text, removing special characters`
-            },
-            {
-              role: "user",
-              content: `Convert these menu items to a JSON array. Return only the raw JSON array, no markdown or code blocks:\n${textContent}`
-            }
-          ],
-          max_tokens: 16000,
-          temperature: 0.3,
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+8. Clean and normalize text, removing special characters
+
+Convert these menu items to a JSON array. Return only the raw JSON array, no markdown or code blocks:
+${textContent}`;
+
+      // Wrap the LLM call with a 5-minute timeout (300000 ms)
+      const responseData = await withTimeout(
+        generateLLMResponse(prompt, 16000, "OPENAI", 0.3),
+        300000
+      );
+      let basicJSON;
+      if (typeof responseData === "string") {
+        basicJSON = JSON.parse(responseData);
+      } else {
+        basicJSON = responseData;
       }
-      if (!data.choices?.[0]?.message?.content) {
-        throw new Error("Invalid API response format");
-      }
-      const basicJSON = JSON.parse(data.choices[0].message.content);
       setUploadProgress(50);
       return basicJSON;
     } catch (error) {
@@ -169,21 +173,11 @@ Rules:
     const firstBatch = items.slice(0, halfLength);
     const secondBatch = items.slice(halfLength);
     setProcessingStep("Enhancing JSON with additional fields...");
+
     const enhanceItems = async (batchItems: any[], batchNumber: number) => {
       try {
-        const response = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${OPENAI_KEY}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-4o",
-            messages: [
-              {
-                role: "system",
-                content: `You are a JSON enhancer that adds fields to menu items. Your response must be ONLY a raw JSON array without any markdown, code blocks, or additional text. Never use \`\`\`json or \`\`\` markers.
-
+        const prompt = `You are a JSON enhancer that adds fields to menu items. Your response must be ONLY a raw JSON array without any markdown, code blocks, or additional text. Never use any code block markers.
+    
 Maintain existing fields and add new ones in this exact format, starting directly with [ and ending with ]:
 {
   "id": (keep existing),
@@ -205,29 +199,29 @@ Rules:
 2. No markdown, no code blocks, no extra text
 3. Maintain ALL existing field values exactly as provided
 4. Add all new fields with appropriate values
-5. Return only the raw JSON array`
-              },
-              {
-                role: "user",
-                content: `Enhance these menu items by adding the specified fields. Return only the raw JSON array without any markdown or formatting:\n${JSON.stringify(batchItems, null, 2)}`
-              }
-            ],
-            max_tokens: 16000,
-            temperature: 0.3,
-          }),
-        });
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+5. Return only the raw JSON array
+
+Enhance these menu items by adding the specified fields. Return only the raw JSON array without any markdown or formatting:
+${JSON.stringify(batchItems, null, 2)}`;
+
+        const responseData = await withTimeout(
+          generateLLMResponse(prompt, 16000, "OPENAI", 0.3),
+          300000
+        );
+        let enhancedItems;
+        if (typeof responseData === "string") {
+          enhancedItems = JSON.parse(responseData);
+        } else {
+          enhancedItems = responseData;
         }
-        const data = await response.json();
-        if (!data.choices?.[0]?.message?.content) {
-          throw new Error("Invalid API response format");
-        }
-        const enhancedItems = JSON.parse(data.choices[0].message.content);
+
         enhancedItems.forEach((item: any, index: number) => {
           const originalItem = batchItems[index];
-          if (item.id !== originalItem.id || item.name !== originalItem.name || item.price !== originalItem.price) {
+          if (
+            item.id !== originalItem.id ||
+            item.name !== originalItem.name ||
+            item.price !== originalItem.price
+          ) {
             throw new Error(`Enhanced item ${index} doesn't match original fields`);
           }
         });
@@ -236,6 +230,7 @@ Rules:
         throw error;
       }
     };
+
     try {
       const enhancedFirstBatch = await enhanceItems(firstBatch, 1);
       setUploadProgress(65);
@@ -249,74 +244,67 @@ Rules:
       setProcessingStep("Generating menu summary...");
       const menuSummary = await generateMenuSummary(finalResult);
       setUploadProgress(85);
-      const menuUpdateResponse = await fetch(`${API_URL}/restaurant/updateMenu/${restaurantId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          menuItems: finalResult,
-          adminUsername: user.username,
-          customisations: [],
-        }),
-      });
+      const menuUpdateResponse = await fetch(
+        `${API_URL}/restaurant/updateMenu/${restaurantId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            menuItems: finalResult,
+            adminUsername: user.username,
+            customisations: [],
+          }),
+        }
+      );
       if (!menuUpdateResponse.ok) {
         throw new Error("Failed to update menu items");
       }
-      const restaurantUpdateResponse = await fetch(`${API_URL}/restaurant/updateRestaurant/${restaurantId}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          menuSummary: menuSummary,
-          adminUsername: user.username,
-        }),
-      });
+      const restaurantUpdateResponse = await fetch(
+        `${API_URL}/restaurant/updateRestaurant/${restaurantId}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            menuSummary: menuSummary,
+            adminUsername: user.username,
+          }),
+        }
+      );
       if (!restaurantUpdateResponse.ok) {
         throw new Error("Failed to update menu summary");
       }
       setUploadProgress(100);
       toast.success("Menu and summary updated successfully!");
       onMenuProcessed(finalResult);
-      setTimeout(() => {
-        resetUploadState();
-      }, 1500);
       return finalResult;
     } catch (error) {
-      throw new Error(`Failed to enhance JSON with additional fields: ${error.message}`);
+      throw new Error(
+        `Failed to enhance JSON with additional fields: ${
+          error instanceof Error ? error.message : error
+        }`
+      );
     }
   };
 
   const generateMenuSummary = async (menuItems: any[]) => {
     try {
-      const response = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${OPENAI_KEY}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o",
-          messages: [
-            {
-              role: "system",
-              content: `You are a restaurant menu summarizer. Create a concise 30-word summary highlighting the key offerings, cuisines, and special features of the menu. Focus on variety, specialties, and unique aspects.`,
-            },
-            {
-              role: "user",
-              content: `Create a 30-word summary for this menu: ${JSON.stringify(menuItems)}`,
-            },
-          ],
-          max_tokens: 100,
-          temperature: 0.6,
-        }),
-      });
-      const data = await response.json();
-      if (!data.choices?.[0]?.message?.content) {
-        throw new Error("Failed to generate menu summary");
-      }
-      return data.choices[0].message.content.trim();
+      const prompt = `You are a restaurant menu summarizer. Create a concise 30-word summary highlighting the key offerings, cuisines, and special features of the menu. Focus on variety, specialties, and unique aspects.
+Return your summary as a valid JSON object with a "summary" key. Do not include any markdown formatting, code block markers, or backticks.
+Create a 30-word summary for this menu: ${JSON.stringify(menuItems)}`;
+
+      const response = await withTimeout(
+        generateLLMResponse(prompt, 100, "OPENAI", 0.6),
+        300000
+      );
+      let resultString =
+        typeof response === "string" ? response : JSON.stringify(response);
+      resultString = resultString.trim().replace(/^`+|`+$/g, "");
+      const result = JSON.parse(resultString);
+      return result.summary.trim();
     } catch (error) {
       throw error;
     }
