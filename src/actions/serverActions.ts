@@ -5,6 +5,39 @@ import type { MenuItem } from "../types/menu";
 
 let apiUrl: string = import.meta.env.VITE_PUBLIC_BACKEND_API_URL;
 
+
+export const generateLLMResponse = async (
+  systemPrompt: string,
+  maxTokens: number = 1000,
+  model: string = "OPENAI",
+  temperature: number = 0.5
+): Promise<any> => {
+  try {
+    const response = await axios.post(
+      `${apiUrl}/menu/generateText`,
+      {
+        systemPrompt,
+        maxTokens,
+        model,
+        temperature,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+      }
+    );
+
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+    throw new Error("Failed to generate LLM response");
+  } catch (error) {
+    console.error("Error generating LLM response:", error);
+    throw error;
+  }
+};
 export interface OrderItem {
   name: string;
   description?: string;
