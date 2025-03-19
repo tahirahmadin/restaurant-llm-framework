@@ -6,6 +6,7 @@ import { clearLocalStorage } from "../utils/storage";
 interface AuthState {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  adminId: string | null;
   bscBaseAddress: string | null;
   activeTab:
     | "orders"
@@ -19,6 +20,7 @@ interface AuthState {
     | "overview";
   setUser: (user: AuthUser | null) => void;
   setBSCBaseAddress: (address: string) => void;
+  setAdminId: (adminId: string) => void;
   setActiveTab: (
     tab:
       | "orders"
@@ -39,16 +41,25 @@ const useAuthStore = create<AuthState>()(
     (set) => ({
       user: null,
       isAuthenticated: false,
+      adminId: null,
       bscBaseAddress: null,
       activeTab: "orders",
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
+      setUser: (user) => {
+        set({
+          user,
+          isAuthenticated: !!user,
+          adminId: user?.adminId || null,
+        });
+      },
       setBSCBaseAddress: (address) => set({ bscBaseAddress: address }),
       setActiveTab: (tab) => set({ activeTab: tab }),
+      setAdminId: (adminId) => set({ adminId }),
       logout: () => {
         clearLocalStorage();
         set({
           user: null,
           isAuthenticated: false,
+          adminId: null,
           bscBaseAddress: null,
           activeTab: "orders",
         });

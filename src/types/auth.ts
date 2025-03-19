@@ -1,13 +1,17 @@
 export interface AuthUser {
-  id: string;
-  username: string;
-  restaurantId: string;
+  adminId: string;
+  email: string;
+  restaurantIds: number[];
+  role: string;
+  createdDate: string;
+  lastUpdatedAt: string;
 }
 
 export interface SignupData {
-  username: string;
+  email: string;
   password: string;
   restaurantDetails: RestaurantDetails;
+  locations?: RestaurantLocation[];
 }
 
 export interface RestaurantDetails {
@@ -22,7 +26,15 @@ export interface RestaurantDetails {
   };
 }
 
+export interface RestaurantLocation {
+  address: string;
+  location: {
+    longitude: number;
+    latitude: number;
+  };
+}
+
 export interface LoginData {
-  username: string;
+  email: string;
   password: string;
 }

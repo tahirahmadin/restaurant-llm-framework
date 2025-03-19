@@ -1,6 +1,7 @@
 import {
   LayoutDashboard,
   ShoppingBag,
+  Building2,
   Menu as MenuIcon,
   Bike,
   User,
@@ -46,7 +47,7 @@ interface LeftBarProps {
       | "help"
       | "delivery"
   ) => void;
-  restaurantId?: number;
+  email?: string;
   isOnline?: boolean;
 }
 
@@ -55,7 +56,7 @@ export function LeftBar({
   setIsExpanded,
   activeTab,
   setActiveTab,
-  restaurantId,
+  email,
   isOnline = false,
 }: LeftBarProps) {
   const logout = useAuthStore((state) => state.logout);
@@ -66,6 +67,7 @@ export function LeftBar({
     { id: "overview", label: "Overview", icon: LayoutDashboardIcon },
     { id: "orders", label: "Orders", icon: ShoppingBag },
     { id: "menu", label: "Menu", icon: MenuIcon },
+    { id: "entities", label: "Entities", icon: Building2 },
     { id: "delivery", label: "Delivery", icon: Bike },
     { id: "profile", label: "Profile", icon: User },
     { id: "services", label: "Services", icon: Store },
@@ -74,12 +76,12 @@ export function LeftBar({
   ];
 
   const toggleOnlineStatus = async () => {
-    if (!user?.restaurantId) {
-      toast.error("Restaurant ID not found");
+    if (!user?.email) {
+      toast.error("User email not found");
       return;
     }
 
-    if (!user?.username) {
+    if (!user?.email) {
       toast.error("User not authenticated");
       return;
     }
@@ -93,10 +95,7 @@ export function LeftBar({
         return;
       }
 
-      const result = await updateRestaurantOnlineStatus(
-        user.restaurantId,
-        user.username
-      );
+      const result = await updateRestaurantOnlineStatus(user.email);
 
       // Update profile in store
       setProfile({

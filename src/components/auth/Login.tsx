@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { User, Lock, Eye, EyeOff } from "lucide-react";
+import { User, Lock, Eye, EyeOff, Mail } from "lucide-react";
 import useAuthStore from "../../store/useAuthStore";
 import { toast } from "sonner";
 import { authenticateAdmin } from "../../actions/serverActions";
 
 export function Login() {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -19,21 +19,26 @@ export function Login() {
 
     try {
       const result = await authenticateAdmin({
-        username,
+        email,
         password,
       });
 
-      // Store superadmin password securely
-      localStorage.setItem("superadminPassword", password);
+      const adminId = result._id;
 
       setUser({
-        id: result.userId,
-        username: result.username,
-        restaurantId: result.restaurantId,
+        adminId,
+        email: result.email,
+        restaurantIds: result.restaurantIds,
+        role: result.role,
+        createdDate: result.createdDate || new Date().toISOString(),
+        lastUpdatedAt: result.lastUpdatedAt || new Date().toISOString(),
       });
 
+      // Set adminId in store after setting user
+      useAuthStore.getState().setAdminId(adminId);
+
       toast.success("Login successful!");
-      if (!result.restaurantId) {
+      if (!result.restaurantIds?.length) {
         toast.warning("Restaurant ID not found. Some features may be limited.");
       }
     } catch (error) {
@@ -49,19 +54,19 @@ export function Login() {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Username
+          Email
         </label>
         <div className="relative">
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
-            type="text"
+            type="email"
             required
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-600 focus:border-transparent ${
               error ? "border-red-500" : "border-gray-300"
             }`}
-            placeholder="Enter your username"
+            placeholder="Enter your email"
           />
         </div>
       </div>

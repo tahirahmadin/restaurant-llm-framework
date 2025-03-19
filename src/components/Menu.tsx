@@ -52,10 +52,10 @@ export function Menu() {
   const [customisations, setCustomisations] = useState<ItemCustomisation[]>([]);
 
   useEffect(() => {
-    if (user?.restaurantId) {
-      loadMenu(user.restaurantId);
+    if (user?.email) {
+      loadMenu(user.email);
     }
-  }, [user?.restaurantId, loadMenu]);
+  }, [user?.email, loadMenu]);
 
   useEffect(() => {
     if (menuItems.length > 0) {

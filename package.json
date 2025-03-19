@@ -11,6 +11,7 @@
     "server": "tsx src/server/index.ts"
   },
   "dependencies": {
+    "@googlemaps/js-api-loader": "^1.16.6",
     "@aws-sdk/client-s3": "^3.740.0",
     "@radix-ui/react-alert-dialog": "^1.1.4",
     "@radix-ui/react-progress": "^1.1.1",

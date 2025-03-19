@@ -21,13 +21,13 @@ export function Profile() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      if (!user?.restaurantId) {
-        toast.error("Restaurant ID not found");
+      if (!user?.email) {
+        toast.error("User email not found");
         return;
       }
 
       try {
-        const data = await getRestaurantProfile(user.restaurantId);
+        const data = await getRestaurantProfile(user.email);
         setProfileData(data);
         setCurrentImageUrl(data.image || "");
       } catch (error) {
@@ -38,7 +38,7 @@ export function Profile() {
     };
 
     loadProfile();
-  }, [user?.restaurantId]);
+  }, [user?.email]);
 
   const fetchWithCache = async (imageUrl: string) => {
     try {

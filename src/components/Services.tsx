@@ -38,10 +38,10 @@ export function Services() {
   });
 
   useEffect(() => {
-    if (user?.restaurantId) {
-      loadProfile(user.restaurantId);
+    if (user?.email) {
+      loadProfile(user.email);
     }
-  }, [user?.restaurantId, loadProfile]);
+  }, [user?.email, loadProfile]);
 
   useEffect(() => {
     if (profile) {

@@ -2,9 +2,9 @@ import axios from "axios";
 import type { SignupData, LoginData } from "../types/auth";
 import type { RestaurantProfile } from "../types/restaurant";
 import type { MenuItem } from "../types/menu";
+import type { LocationDetails } from "../types/location";
 
 let apiUrl: string = import.meta.env.VITE_PUBLIC_BACKEND_API_URL;
-
 
 export const generateLLMResponse = async (
   systemPrompt: string,
@@ -110,13 +110,13 @@ export const updatePaymentOperationModes = async (
 };
 
 export const fetchRestaurantOrders = async (
-  restaurantId: string | number
+  email: string
 ): Promise<Order[]> => {
   try {
     const response = await axios.get(
       `${apiUrl}/restaurant/getRestaurantOrders`,
       {
-        params: { restaurantId: restaurantId.toString() },
+        params: { email },
       }
     );
 
@@ -165,17 +165,13 @@ export const createRestaurant = async (
   userId: string;
   username: string;
   restaurantId: string;
+  isChain: boolean;
 }> => {
   try {
     const response = await axios.post(`${apiUrl}/restaurant/createRestaurant`, {
-      name: signupData.restaurantDetails.name,
-      description: signupData.restaurantDetails.description,
-      image: signupData.restaurantDetails.image,
-      contactNo: signupData.restaurantDetails.contactNo,
-      address: signupData.restaurantDetails.address,
-      location: signupData.restaurantDetails.location,
-      superadminUsername: signupData.username,
-      superadminPassword: signupData.password,
+      restaurantDetails: signupData.restaurantDetails,
+      email: signupData.email,
+      password: signupData.password,
     });
 
     return response.data;
@@ -183,6 +179,92 @@ export const createRestaurant = async (
     if (error.response?.data) {
       return error.response.data;
     }
+    throw error;
+  }
+};
+
+export const createChainRestaurant = async (
+  signupData: SignupData
+): Promise<{
+  userId: string;
+  username: string;
+  restaurantId: string;
+  isChain: boolean;
+}> => {
+  try {
+    const response = await axios.post(
+      `${apiUrl}/restaurant/createChainRestaurant`,
+      {
+        restaurantDetails: signupData.restaurantDetails,
+        email: signupData.email,
+        password: signupData.password,
+        locations: signupData.locations || [],
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    if (error.response?.data) {
+      return error.response.data;
+    }
+    throw error;
+  }
+};
+
+export const addRestaurantsToChain = async (
+  restaurants: LocationDetails[],
+  adminId: string
+): Promise<LocationDetails[]> => {
+  try {
+    const response = await axios.post(
+      `${apiUrl}/restaurant/addRestaurantsToChain`,
+      {
+        restaurants: restaurants.map((restaurant) => ({
+          name: restaurant.name,
+          contactNo: restaurant.contactNo,
+          address: restaurant.address,
+          location: {
+            latitude: restaurant.location.latitude,
+            longitude: restaurant.location.longitude,
+          },
+          manager: {
+            email: restaurant.manager?.email,
+            password: restaurant.manager?.password,
+          },
+        })),
+        adminId,
+      }
+    );
+
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+
+    throw new Error(response.data.error || "Failed to add locations");
+  } catch (error) {
+    console.error("Error adding location:", error);
+    throw error;
+  }
+};
+
+export const getChainLocations = async (
+  adminId: string
+): Promise<LocationDetails[]> => {
+  try {
+    const response = await axios.get(
+      `${apiUrl}/restaurant/getChainRestaurants`,
+      {
+        params: { adminId },
+      }
+    );
+
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+
+    throw new Error(response.data.error || "Failed to fetch locations");
+  } catch (error) {
+    console.error("Error fetching locations:", error);
     throw error;
   }
 };
@@ -197,16 +279,13 @@ export const authenticateAdmin = async (
     const response = await axios.post(
       `${apiUrl}/restaurant/authenticateAdmin`,
       {
-        username: loginData.username,
+        email: loginData.email,
         password: loginData.password,
       }
     );
 
     if (response.data && !response.data.error) {
-      return {
-        username: response.data.result.username,
-        restaurantId: response.data.result.restaurantId,
-      };
+      return response.data.result;
     }
 
     throw new Error(response.data.error || "Authentication failed");
@@ -217,11 +296,11 @@ export const authenticateAdmin = async (
 };
 
 export const getRestaurantProfile = async (
-  restaurantId: string | number
+  email: string
 ): Promise<RestaurantProfile> => {
   try {
     const response = await axios.get(
-      `${apiUrl}/restaurant/getRestaurant/${restaurantId}`
+      `${apiUrl}/restaurant/getRestaurant/${email}`
     );
 
     if (response.data && !response.data.error) {
@@ -238,12 +317,12 @@ export const getRestaurantProfile = async (
 };
 
 export const updateRestaurantProfile = async (
-  restaurantId: string | number,
+  email: string,
   data: Partial<RestaurantProfile>
 ): Promise<RestaurantProfile> => {
   try {
     const response = await axios.put(
-      `${apiUrl}/restaurant/updateRestaurant/${restaurantId}`,
+      `${apiUrl}/restaurant/updateRestaurant/${email}`,
       data
     );
 
@@ -332,12 +411,10 @@ export const deleteMenuItem = async (
   }
 };
 
-export const getRestaurantMenu = async (
-  restaurantId: string | number
-): Promise<MenuItem[]> => {
+export const getRestaurantMenu = async (email: string): Promise<MenuItem[]> => {
   try {
     const response = await axios.get(
-      `${apiUrl}/restaurant/getRestaurantMenu/${restaurantId}`
+      `${apiUrl}/restaurant/getRestaurantMenu/${email}`
     );
 
     if (response.data && !response.data.error) {
@@ -386,15 +463,13 @@ export const getMostOrderedItems = async (
 };
 
 export const updateRestaurantOnlineStatus = async (
-  restaurantId: string | number,
-  adminUsername: string
+  email: string
 ): Promise<{ isOnline: boolean }> => {
   try {
     const response = await axios.post(
       `${apiUrl}/restaurant/updateOnlineStatus`,
       {
-        restaurantId: restaurantId,
-        adminUsername,
+        email,
       }
     );
 

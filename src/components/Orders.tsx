@@ -62,15 +62,15 @@ export function Orders() {
 
   // Function to load orders; ensures the result is always an array.
   const loadOrders = useCallback(async () => {
-    if (!user?.restaurantId) {
-      toast.error("Restaurant ID not found");
+    if (!user?.email) {
+      toast.error("User email not found");
       return;
     }
     setLoading(true);
     const MIN_LOADING_TIME = 1000;
     const startTime = Date.now();
     try {
-      const fetchedOrders = await fetchRestaurantOrders(user.restaurantId);
+      const fetchedOrders = await fetchRestaurantOrders(user.email);
       // Always treat fetchedOrders as an array.
       const ordersArray = Array.isArray(fetchedOrders) ? fetchedOrders : [];
       const storedTimestampStr = sessionStorage.getItem("lastOrderTimestamp");
