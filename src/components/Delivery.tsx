@@ -28,16 +28,16 @@ export function Delivery() {
 
   useEffect(() => {
     loadAgents();
-  }, [user?.restaurantId]);
+  }, [user?.adminId]);
 
   const loadAgents = async () => {
-    if (!user?.restaurantId) {
-      toast.error("Restaurant ID not found");
+    if (!user?.adminId) {
+      toast.error("Admin ID not found");
       return;
     }
 
     try {
-      const data = await getDeliveryAgents(user.restaurantId);
+      const data = await getDeliveryAgents(user.adminId);
       setAgents(data);
     } catch (error) {
       toast.error("Failed to load delivery agents");
@@ -48,7 +48,7 @@ export function Delivery() {
 
   const handleCreateAgent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user?.restaurantId || !user?.username) {
+    if (!user?.adminId || !user?.username) {
       toast.error("Missing required credentials");
       return;
     }
@@ -62,7 +62,7 @@ export function Delivery() {
     setIsCreating(true);
     try {
       await createDeliveryAgent(
-        user.restaurantId,
+        user.adminId,
         newAgent.username,
         newAgent.password,
         user.username,

@@ -9,7 +9,7 @@ import { API_URL } from "../config";
 import { getDocument, GlobalWorkerOptions } from "pdfjs-dist/build/pdf";
 import "pdfjs-dist/build/pdf.worker.entry";
 import useAuthStore from "../store/useAuthStore";
-import { generateLLMResponse } from "../actions/serverActions";
+import { generateLLMResponse, uploadMenu } from "../actions/serverActions";
 
 GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.9.179/pdf.worker.min.js`;
 
@@ -92,12 +92,14 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({
         for (let i = 1; i <= pdf.numPages; i++) {
           const page = await pdf.getPage(i);
           const text = await page.getTextContent();
-          textContent += text.items.map((item: any) => item.str).join(" ") + "\n";
+          textContent +=
+            text.items.map((item: any) => item.str).join(" ") + "\n";
           setUploadProgress(10 + (i / pdf.numPages) * 10);
         }
         extractedText = textContent;
       } else if (
-        file.type === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+        file.type ===
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
         file.type === "application/msword"
       ) {
         const arrayBuffer = await file.arrayBuffer();
@@ -115,9 +117,13 @@ const MyDropzone: React.FC<MyDropzoneProps> = ({
       }
       toast.success("Text extraction complete!");
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Error processing file.");
+      setError(
+        error instanceof Error ? error.message : "Error processing file."
+      );
       toast.error(
-        `File processing failed: ${error instanceof Error ? error.message : "Unknown error"}`
+        `File processing failed: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
       );
     }
     return extractedText;
@@ -174,6 +180,10 @@ ${textContent}`;
     const secondBatch = items.slice(halfLength);
     setProcessingStep("Enhancing JSON with additional fields...");
 
+    if (!user?.adminId) {
+      throw new Error("adminId not authenticated");
+    }
+
     const enhanceItems = async (batchItems: any[], batchNumber: number) => {
       try {
         const prompt = `You are a JSON enhancer that adds fields to menu items. Your response must be ONLY a raw JSON array without any markdown, code blocks, or additional text. Never use any code block markers.
@@ -222,7 +232,9 @@ ${JSON.stringify(batchItems, null, 2)}`;
             item.name !== originalItem.name ||
             item.price !== originalItem.price
           ) {
-            throw new Error(`Enhanced item ${index} doesn't match original fields`);
+            throw new Error(
+              `Enhanced item ${index} doesn't match original fields`
+            );
           }
         });
         return enhancedItems;
@@ -244,23 +256,10 @@ ${JSON.stringify(batchItems, null, 2)}`;
       setProcessingStep("Generating menu summary...");
       const menuSummary = await generateMenuSummary(finalResult);
       setUploadProgress(85);
-      const menuUpdateResponse = await fetch(
-        `${API_URL}/restaurant/updateMenu/${restaurantId}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            menuItems: finalResult,
-            adminUsername: user.username,
-            customisations: [],
-          }),
-        }
-      );
-      if (!menuUpdateResponse.ok) {
-        throw new Error("Failed to update menu items");
-      }
+
+      // Use the uploadMenu function from serverActions
+      await uploadMenu(user.adminId, finalResult);
+
       const restaurantUpdateResponse = await fetch(
         `${API_URL}/restaurant/updateRestaurant/${restaurantId}`,
         {
@@ -280,6 +279,7 @@ ${JSON.stringify(batchItems, null, 2)}`;
       setUploadProgress(100);
       toast.success("Menu and summary updated successfully!");
       onMenuProcessed(finalResult);
+
       return finalResult;
     } catch (error) {
       throw new Error(
@@ -337,7 +337,8 @@ Create a 30-word summary for this menu: ${JSON.stringify(menuItems)}`;
     accept: {
       "application/pdf": [".pdf"],
       "application/msword": [".doc"],
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        [".docx"],
       "text/plain": [".txt"],
     },
     maxFiles: 1,
@@ -358,14 +359,18 @@ Create a 30-word summary for this menu: ${JSON.stringify(menuItems)}`;
         {isDragActive ? (
           <div className="lg:px-24 cursor-pointer flex flex-col text-primary items-center">
             <Upload className="w-8 h-8 text-muted-foreground animate-bounce" />
-            <p className="text-center break-words text-sm animate-pulse">Drop the file here</p>
+            <p className="text-center break-words text-sm animate-pulse">
+              Drop the file here
+            </p>
           </div>
         ) : (
           <>
             {FileUpload.File ? (
               <div className="px-10 lg:px-24 cursor-pointer flex flex-col text-primary items-center">
                 <Upload className="w-8 h-8 text-muted-foreground" />
-                <p className="text-center break-words text-sm">{FileUpload.File.name}</p>
+                <p className="text-center break-words text-sm">
+                  {FileUpload.File.name}
+                </p>
                 {!isUploading && (
                   <button
                     type="button"
@@ -380,9 +385,12 @@ Create a 30-word summary for this menu: ${JSON.stringify(menuItems)}`;
             ) : (
               <div className="px-8 lg:px-24 cursor-pointer flex flex-col text-primary items-center">
                 <Upload className="w-8 h-8 text-muted-foreground animate-pulse" />
-                <p className="text-center break-words text-sm animate-pulse">Upload file</p>
+                <p className="text-center break-words text-sm animate-pulse">
+                  Upload file
+                </p>
                 <p className="text-center break-words text-xs text-muted-foreground mt-2">
-                  Drop or click to upload PDF, DOCX, DOC, or TXT files (max 15MB)
+                  Drop or click to upload PDF, DOCX, DOC, or TXT files (max
+                  15MB)
                 </p>
               </div>
             )}

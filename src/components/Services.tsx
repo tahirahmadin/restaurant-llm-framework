@@ -38,10 +38,10 @@ export function Services() {
   });
 
   useEffect(() => {
-    if (user?.email) {
-      loadProfile(user.email);
+    if (user?.adminId) {
+      loadProfile(user.adminId);
     }
-  }, [user?.email, loadProfile]);
+  }, [user?.adminId, loadProfile]);
 
   useEffect(() => {
     if (profile) {
@@ -55,7 +55,7 @@ export function Services() {
   }, [profile]);
 
   const handleSaveSettings = async () => {
-    if (!user?.restaurantId || !user?.username) {
+    if (!user?.adminId || !user?.username) {
       toast.error("Missing required credentials");
       return;
     }
@@ -63,7 +63,7 @@ export function Services() {
     setIsSubmitting(true);
     try {
       await updatePaymentOperationModes(
-        Number(user.restaurantId),
+        user.adminId,
         paymentModes,
         operationModes,
         user.username

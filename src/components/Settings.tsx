@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ImageIcon } from "lucide-react";
 import { toast } from "sonner";
 import MyDropzone from "./MyDropzone";
+import useAuthStore from "../store/useAuthStore";
 
 interface FileState {
   File: File | null;
@@ -97,9 +98,10 @@ export function Settings({
   onMenuProcessed,
 }: SettingsProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuthStore();
 
   const setFileUpload = ({ File, extractedText }: FileState) => {
-    if (!restaurantDetails.restaurantId) {
+    if (!user?.adminId) {
       toast.error("Please complete restaurant registration first");
       return;
     }
@@ -124,7 +126,7 @@ export function Settings({
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             Upload Menu
           </h2>
-          {restaurantDetails.restaurantId ? (
+          {user?.adminId ? (
             <MyDropzone
               FileUpload={{
                 File: restaurantDetails.menu?.File || null,
@@ -132,11 +134,11 @@ export function Settings({
               }}
               setFileUpload={setFileUpload}
               onMenuProcessed={handleMenuProcessedInternal}
-              restaurantId={restaurantDetails.restaurantId}
+              restaurantId={user.restaurantId}
             />
           ) : (
             <div className="text-red-500 text-sm mt-2">
-              Restaurant ID not found. Please try refreshing the page.
+              Admin ID not found. Please try refreshing the page.
             </div>
           )}
         </div>

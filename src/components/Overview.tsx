@@ -24,13 +24,13 @@ export function Overview() {
   const [isLoadingDishes, setIsLoadingDishes] = useState(true);
 
   useEffect(() => {
-    if (user?.restaurantId) {
-      loadOrders(user.restaurantId);
+    if (user?.adminId) {
+      loadOrders(user.adminId);
 
       // Fetch most ordered items
       const fetchPopularDishes = async () => {
         try {
-          const resData = await getMostOrderedItems(user.restaurantId, 5);
+          const resData = await getMostOrderedItems(user.adminId, 5);
           setPopularDishes(resData.items);
           setSalesData({
             totalSales: resData.totalSales,
@@ -46,7 +46,7 @@ export function Overview() {
 
       fetchPopularDishes();
     }
-  }, [user?.restaurantId, loadOrders]);
+  }, [user?.adminId, loadOrders]);
 
   const chartData = {
     dates: ["01 Nov", "02 Nov", "03 Nov", "04 Nov", "05 Nov", "06 Nov"],

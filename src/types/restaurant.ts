@@ -1,6 +1,7 @@
 export interface RestaurantProfile {
   _id: string;
   restaurantId: number;
+  isChain: boolean;
   name: string;
   description: string;
   image: string;

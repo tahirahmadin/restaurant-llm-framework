@@ -7,7 +7,7 @@ interface RestaurantState {
   profile: RestaurantProfile | null;
   isLoading: boolean;
   error: string | null;
-  loadProfile: (userEmail: string) => Promise<void>;
+  loadProfile: (adminId: string) => Promise<void>;
   setProfile: (profile: RestaurantProfile) => void;
 }
 
@@ -16,10 +16,10 @@ const useRestaurantStore = create<RestaurantState>((set) => ({
   isLoading: false,
   error: null,
 
-  loadProfile: async (userEmail) => {
+  loadProfile: async (adminId) => {
     set({ isLoading: true });
     try {
-      const profile = await getRestaurantProfile(userEmail);
+      const profile = await getRestaurantProfile(adminId);
       set({ profile, error: null });
     } catch (error) {
       const errorMessage =

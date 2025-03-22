@@ -15,30 +15,28 @@ import useAuthStore from "./store/useAuthStore";
 import useRestaurantStore from "./store/useRestaurantStore";
 
 function App() {
-  const { user, adminId } = useAuthStore();
+  const { user } = useAuthStore();
   const activeTab = useAuthStore((state) => state.activeTab);
   const setActiveTab = useAuthStore((state) => state.setActiveTab);
   const [isExpanded, setIsExpanded] = useState(true);
   const { profile, loadProfile } = useRestaurantStore();
 
   useEffect(() => {
-    if (user?.email) {
-      loadProfile(user.email);
+    if (user?.adminId) {
+      loadProfile(user.adminId);
     }
-  }, [user?.email, loadProfile]);
+  }, [user?.adminId, loadProfile]);
 
   return (
     <AuthWrapper>
       <div className="flex h-screen bg-[#F1F1F1] overflow-hidden">
-        {console.log("adminId")}
-        {console.log(adminId)}
         <Toaster position="top-right" />
         <LeftBar
           isExpanded={isExpanded}
           setIsExpanded={setIsExpanded}
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          email={user?.email}
+          adminId={user?.adminId}
           isOnline={profile?.isOnline}
         />
         <div className="flex-1 flex flex-col overflow-y-auto">

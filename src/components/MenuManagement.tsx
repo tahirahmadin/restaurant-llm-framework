@@ -99,7 +99,7 @@ const emptyCustomisation: ItemCustomisation = {
    3) Props for the main component
    ------------------------------------------------------------------ */
 interface MenuManagementProps {
-  restaurantId: number;
+  adminId: string;
   restaurantName: string;
   initialMenuData?: MenuItem[];
   initialCustomisations?: ItemCustomisation[];
@@ -112,7 +112,7 @@ interface MenuManagementProps {
    4) Main Component
    ------------------------------------------------------------------ */
 const MenuManagement: React.FC<MenuManagementProps> = ({
-  restaurantId,
+  adminId,
   restaurantName,
   initialMenuData = [],
   initialCustomisations = [],
@@ -349,11 +349,7 @@ const MenuManagement: React.FC<MenuManagementProps> = ({
           : { categories: [] },
       };
 
-      const updatedItem = await updateMenuItem(
-        Number(restaurantId),
-        selectedItem.id,
-        payload
-      );
+      const updatedItem = await updateMenuItem(adminId, adminId, payload);
 
       const mergedItem = { ...updatedItem, id: selectedItem.id };
 

@@ -62,15 +62,15 @@ export function Orders() {
 
   // Function to load orders; ensures the result is always an array.
   const loadOrders = useCallback(async () => {
-    if (!user?.email) {
-      toast.error("User email not found");
+    if (!user?.adminId) {
+      toast.error("Admin ID not found");
       return;
     }
     setLoading(true);
     const MIN_LOADING_TIME = 1000;
     const startTime = Date.now();
     try {
-      const fetchedOrders = await fetchRestaurantOrders(user.email);
+      const fetchedOrders = await fetchRestaurantOrders(user.adminId);
       // Always treat fetchedOrders as an array.
       const ordersArray = Array.isArray(fetchedOrders) ? fetchedOrders : [];
       const storedTimestampStr = sessionStorage.getItem("lastOrderTimestamp");
@@ -114,10 +114,10 @@ export function Orders() {
 
   // Initial order load when restaurantId is available.
   useEffect(() => {
-    if (user?.restaurantId) {
+    if (user?.adminId) {
       loadOrders();
     }
-  }, [user?.restaurantId, loadOrders]);
+  }, [user?.adminId, loadOrders]);
 
   // WebSocket integration for live updates.
   useEffect(() => {

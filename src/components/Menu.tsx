@@ -3,8 +3,8 @@ import MenuManagement from "./MenuManagement";
 import { Settings } from "./Settings";
 import { toast } from "sonner";
 import useAuthStore from "../store/useAuthStore";
-import useRestaurantStore from "../store/useRestaurantStore";
 import useMenuStore from "../store/useMenuStore";
+import { getRestaurantProfile } from "../actions/serverActions";
 
 interface MenuItem {
   id: number;
@@ -43,7 +43,8 @@ interface ItemCustomisation {
 
 export function Menu() {
   const { user } = useAuthStore();
-  const { profile, isLoading: isLoadingProfile } = useRestaurantStore();
+  const [profile, setProfile] = useState<any>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const {
     items: menuItems,
     isLoading: isLoadingMenu,
@@ -52,10 +53,27 @@ export function Menu() {
   const [customisations, setCustomisations] = useState<ItemCustomisation[]>([]);
 
   useEffect(() => {
-    if (user?.email) {
-      loadMenu(user.email);
-    }
-  }, [user?.email, loadMenu]);
+    const loadData = async () => {
+      if (!user?.adminId) return;
+
+      setIsLoadingProfile(true);
+      try {
+        const profileData = await getRestaurantProfile(user.adminId);
+        setProfile(profileData);
+
+        // If menuId exists, fetch menu
+        if (profileData.menuId) {
+          await loadMenu(user.adminId);
+        }
+      } catch (error) {
+        toast.error("Failed to load profile");
+      } finally {
+        setIsLoadingProfile(false);
+      }
+    };
+
+    loadData();
+  }, [user?.adminId]);
 
   useEffect(() => {
     if (menuItems.length > 0) {
@@ -72,7 +90,7 @@ export function Menu() {
   const handleMenuData = (data: MenuItem[]) => {
     try {
       useMenuStore.getState().setItems(data);
-      useRestaurantStore.getState().setProfile({
+      setProfile({
         ...profile!,
         menuUploaded: true,
       });
@@ -123,10 +141,7 @@ export function Menu() {
         }}
         setRestaurantDetails={(details) => {
           if (profile) {
-            useRestaurantStore.getState().setProfile({
-              ...profile,
-              ...details,
-            });
+            setProfile({ ...profile, ...details });
           }
         }}
         onMenuProcessed={handleMenuData}
@@ -136,7 +151,7 @@ export function Menu() {
 
   return (
     <MenuManagement
-      restaurantId={user?.restaurantId || 0}
+      adminId={user?.adminId || ""}
       restaurantName={profile?.name || ""}
       initialMenuData={menuItems}
       initialCustomisations={customisations}

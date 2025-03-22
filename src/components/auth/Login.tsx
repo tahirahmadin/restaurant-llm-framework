@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import { User, Lock, Eye, EyeOff, Mail } from "lucide-react";
 import useAuthStore from "../../store/useAuthStore";
 import { toast } from "sonner";
-import { authenticateAdmin } from "../../actions/serverActions";
+import {
+  authenticateAdmin,
+  getRestaurantProfile,
+} from "../../actions/serverActions";
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -22,25 +25,18 @@ export function Login() {
         email,
         password,
       });
+      const adminId = result._id; // Use _id from authentication result
 
-      const adminId = result._id;
+      // Fetch restaurant profile
+      const profile = await getRestaurantProfile(adminId);
 
       setUser({
         adminId,
         email: result.email,
-        restaurantIds: result.restaurantIds,
-        role: result.role,
-        createdDate: result.createdDate || new Date().toISOString(),
-        lastUpdatedAt: result.lastUpdatedAt || new Date().toISOString(),
+        restaurantId: profile.restaurantId,
+        username: result.username,
+        isChain: profile.isChain || false,
       });
-
-      // Set adminId in store after setting user
-      useAuthStore.getState().setAdminId(adminId);
-
-      toast.success("Login successful!");
-      if (!result.restaurantIds?.length) {
-        toast.warning("Restaurant ID not found. Some features may be limited.");
-      }
     } catch (error) {
       const errorMessage = "Username or password is incorrect";
       setError(errorMessage);

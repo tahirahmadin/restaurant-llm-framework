@@ -288,16 +288,15 @@ export function Signup() {
     setIsLoading(true);
     setEmailError("");
     try {
-      const signupData: SignupData = {
+      const signupData = {
         email,
         password,
+        chainType: isChain ? "MULTI" : "SINGLE",
         restaurantDetails,
-        isChain,
+        locations: isChain ? locations : undefined,
       };
 
-      const response = isChain
-        ? await createChainRestaurant(signupData)
-        : await createRestaurant(signupData);
+      const response = await createRestaurant(signupData);
 
       if (response.error) {
         setEmailError("Email already registered");

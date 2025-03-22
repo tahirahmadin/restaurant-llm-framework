@@ -82,7 +82,7 @@ interface OperationModes {
 }
 
 export const updatePaymentOperationModes = async (
-  restaurantId: number,
+  adminId: string,
   paymentModes: PaymentModes,
   operationModes: OperationModes,
   adminUsername: string
@@ -91,7 +91,7 @@ export const updatePaymentOperationModes = async (
     const response = await axios.post(
       `${apiUrl}/restaurant/updatePaymentOperationModes`,
       {
-        restaurantId,
+        adminId,
         paymentModes,
         operationModes,
         adminUsername,
@@ -110,13 +110,13 @@ export const updatePaymentOperationModes = async (
 };
 
 export const fetchRestaurantOrders = async (
-  email: string
+  adminId: string
 ): Promise<Order[]> => {
   try {
     const response = await axios.get(
       `${apiUrl}/restaurant/getRestaurantOrders`,
       {
-        params: { email },
+        params: { adminId },
       }
     );
 
@@ -162,17 +162,24 @@ export const updateOrderStatus = async (
 export const createRestaurant = async (
   signupData: SignupData
 ): Promise<{
-  userId: string;
-  username: string;
-  restaurantId: string;
+  _id: string;
+  email: string;
+  restaurantIds: number[];
+  role: string;
+  createdDate: string;
+  lastUpdatedAt: string;
   isChain: boolean;
 }> => {
   try {
-    const response = await axios.post(`${apiUrl}/restaurant/createRestaurant`, {
-      restaurantDetails: signupData.restaurantDetails,
-      email: signupData.email,
-      password: signupData.password,
-    });
+    const response = await axios.post(
+      `${apiUrl}/restaurant/createChainRestaurant`,
+      {
+        restaurantDetails: signupData.restaurantDetails,
+        email: signupData.email,
+        password: signupData.password,
+        chainType: signupData.chainType || "SINGLE",
+      }
+    );
 
     return response.data;
   } catch (error: any) {
@@ -186,9 +193,12 @@ export const createRestaurant = async (
 export const createChainRestaurant = async (
   signupData: SignupData
 ): Promise<{
-  userId: string;
-  username: string;
-  restaurantId: string;
+  _id: string;
+  email: string;
+  restaurantIds: number[];
+  role: string;
+  createdDate: string;
+  lastUpdatedAt: string;
   isChain: boolean;
 }> => {
   try {
@@ -198,6 +208,7 @@ export const createChainRestaurant = async (
         restaurantDetails: signupData.restaurantDetails,
         email: signupData.email,
         password: signupData.password,
+        chainType: "MULTI",
         locations: signupData.locations || [],
       }
     );
@@ -251,12 +262,9 @@ export const getChainLocations = async (
   adminId: string
 ): Promise<LocationDetails[]> => {
   try {
-    const response = await axios.get(
-      `${apiUrl}/restaurant/getChainRestaurants`,
-      {
-        params: { adminId },
-      }
-    );
+    const response = await axios.get(`${apiUrl}/restaurant/getChainLocations`, {
+      params: { adminId },
+    });
 
     if (response.data && !response.data.error) {
       return response.data.result;
@@ -272,7 +280,8 @@ export const getChainLocations = async (
 export const authenticateAdmin = async (
   loginData: LoginData
 ): Promise<{
-  userId: string;
+  _id: string;
+  email: string;
   username: string;
 }> => {
   try {
@@ -296,11 +305,11 @@ export const authenticateAdmin = async (
 };
 
 export const getRestaurantProfile = async (
-  email: string
+  adminId: string
 ): Promise<RestaurantProfile> => {
   try {
     const response = await axios.get(
-      `${apiUrl}/restaurant/getRestaurant/${email}`
+      `${apiUrl}/restaurant/getRestaurant?adminId=${adminId}`
     );
 
     if (response.data && !response.data.error) {
@@ -317,12 +326,12 @@ export const getRestaurantProfile = async (
 };
 
 export const updateRestaurantProfile = async (
-  email: string,
+  adminId: string,
   data: Partial<RestaurantProfile>
 ): Promise<RestaurantProfile> => {
   try {
     const response = await axios.put(
-      `${apiUrl}/restaurant/updateRestaurant/${email}`,
+      `${apiUrl}/restaurant/updateRestaurant/${adminId}`,
       data
     );
 
@@ -340,14 +349,14 @@ export const updateRestaurantProfile = async (
 };
 
 export const addMenuItem = async (
-  restaurantId: number,
+  adminId: string,
   menuItem: Partial<MenuItem> & { adminUsername: string }
 ): Promise<MenuItem> => {
   try {
-    const response = await axios.post(
-      `${apiUrl}/restaurant/addMenuItem/${restaurantId}`,
-      menuItem
-    );
+    const response = await axios.post(`${apiUrl}/restaurant/addMenuItem`, {
+      params: { adminId },
+      ...menuItem,
+    });
 
     if (response.data && !response.data.error) {
       return response.data.result;
@@ -361,15 +370,15 @@ export const addMenuItem = async (
 };
 
 export const updateMenuItem = async (
-  restaurantId: number,
+  adminId: string,
   itemId: number,
   menuItem: Partial<MenuItem> & { adminUsername: string }
 ): Promise<MenuItem> => {
   try {
-    const response = await axios.put(
-      `${apiUrl}/restaurant/updateMenuItem/${restaurantId}/${itemId}`,
-      menuItem
-    );
+    const response = await axios.put(`${apiUrl}/restaurant/updateMenuItem`, {
+      params: { adminId, menuId: itemId },
+      ...menuItem,
+    });
 
     if (response.data && !response.data.error) {
       return response.data.result;
@@ -382,8 +391,31 @@ export const updateMenuItem = async (
   }
 };
 
+export const uploadMenu = async (
+  adminId: string,
+  menuItems: MenuItem[]
+): Promise<MenuItem[]> => {
+  try {
+    const response = await axios.put(
+      `${apiUrl}/restaurant/uploadMenu?adminId=${adminId}`,
+      {
+        menuItems,
+      }
+    );
+
+    if (response.data && !response.data.error) {
+      return response.data.result;
+    }
+
+    throw new Error(response.data.error || "Failed to upload menu");
+  } catch (error) {
+    console.error("Error uploading menu:", error);
+    throw error;
+  }
+};
+
 export const deleteMenuItem = async (
-  restaurantId: number,
+  adminId: string,
   itemId: number,
   adminUsername: string
 ): Promise<any> => {
@@ -394,7 +426,7 @@ export const deleteMenuItem = async (
     };
 
     const response = await axios.delete(
-      `${apiUrl}/restaurant/deleteMenuItem/${restaurantId}/${itemId}`,
+      `${apiUrl}/restaurant/deleteMenuItem/${adminId}/${itemId}`,
       {
         data: payload,
       }
@@ -411,14 +443,16 @@ export const deleteMenuItem = async (
   }
 };
 
-export const getRestaurantMenu = async (email: string): Promise<MenuItem[]> => {
+export const getRestaurantMenu = async (
+  adminId: string
+): Promise<MenuItem[]> => {
   try {
     const response = await axios.get(
-      `${apiUrl}/restaurant/getRestaurantMenu/${email}`
+      `${apiUrl}/restaurant/getRestaurantMenu?adminId=${adminId}`
     );
 
     if (response.data && !response.data.error) {
-      return response.data.result.menu.items;
+      return response.data.result;
     }
 
     throw new Error(response.data.error || "Failed to fetch restaurant menu");
@@ -429,7 +463,7 @@ export const getRestaurantMenu = async (email: string): Promise<MenuItem[]> => {
 };
 
 export const getMostOrderedItems = async (
-  restaurantId: string | number,
+  adminId: string,
   limit: number = 5
 ): Promise<{
   items: Array<{
@@ -445,7 +479,7 @@ export const getMostOrderedItems = async (
     const response = await axios.get(
       `${apiUrl}/restaurant/most-ordered-items`,
       {
-        params: { restaurantId, limit },
+        params: { adminId, limit },
       }
     );
 
@@ -463,13 +497,13 @@ export const getMostOrderedItems = async (
 };
 
 export const updateRestaurantOnlineStatus = async (
-  email: string
+  adminId: string
 ): Promise<{ isOnline: boolean }> => {
   try {
     const response = await axios.post(
       `${apiUrl}/restaurant/updateOnlineStatus`,
       {
-        email,
+        adminId,
       }
     );
 
@@ -513,7 +547,7 @@ export const updateRestaurantOnlineStatus = async (
 // };
 
 export const updateBSCBaseDepositAddress = async (
-  restaurantId: number,
+  adminId: string,
   bscBaseAddress: string,
   adminUsername: string
 ): Promise<{ success: boolean }> => {
@@ -521,7 +555,7 @@ export const updateBSCBaseDepositAddress = async (
     const response = await axios.post(
       `${apiUrl}/restaurant/updateBSCBaseDepositAddress`,
       {
-        restaurantId,
+        adminId,
         bscBaseAddress,
         adminUsername,
       }
@@ -539,7 +573,7 @@ export const updateBSCBaseDepositAddress = async (
 };
 
 export const getDeliveryAgents = async (
-  restaurantId: string | number
+  adminId: string
 ): Promise<
   Array<{
     id: string;
@@ -551,7 +585,7 @@ export const getDeliveryAgents = async (
 > => {
   try {
     const response = await axios.get(`${apiUrl}/restaurant/getDeliveryAgents`, {
-      params: { restaurantId: restaurantId.toString() },
+      params: { adminId },
     });
 
     if (response.data && !response.data.error) {
@@ -566,7 +600,7 @@ export const getDeliveryAgents = async (
 };
 
 export const createDeliveryAgent = async (
-  restaurantId: string | number,
+  adminId: string,
   username: string,
   password: string,
   superadminUsername: string,
@@ -579,7 +613,7 @@ export const createDeliveryAgent = async (
     const response = await axios.post(
       `${apiUrl}/restaurant/createDeliveryAgent`,
       {
-        restaurantId,
+        adminId,
         username,
         password,
         superadminUsername,

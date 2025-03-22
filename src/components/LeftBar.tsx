@@ -16,10 +16,7 @@ import {
   LayoutDashboardIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  getRestaurantProfile,
-  updateRestaurantOnlineStatus,
-} from "../actions/serverActions";
+import { updateRestaurantOnlineStatus } from "../actions/serverActions";
 import useAuthStore from "../store/useAuthStore";
 import useRestaurantStore from "../store/useRestaurantStore";
 import { validateRestaurantOnlineStatus } from "../utils/onlineValidation";

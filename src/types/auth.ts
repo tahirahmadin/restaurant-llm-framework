@@ -1,15 +1,15 @@
 export interface AuthUser {
   adminId: string;
   email: string;
-  restaurantIds: number[];
-  role: string;
-  createdDate: string;
-  lastUpdatedAt: string;
+  restaurantId: number;
+  username: string;
+  isChain: boolean;
 }
 
 export interface SignupData {
   email: string;
   password: string;
+  chainType?: "SINGLE" | "MULTI";
   restaurantDetails: RestaurantDetails;
   locations?: RestaurantLocation[];
 }

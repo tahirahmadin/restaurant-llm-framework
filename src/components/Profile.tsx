@@ -6,8 +6,30 @@ import {
   getRestaurantProfile,
   updateRestaurantProfile,
 } from "../actions/serverActions";
-import type { RestaurantProfile } from "../types/restaurant";
 import { API_URL } from "../config";
+
+interface RestaurantProfile {
+  _id: string;
+  address: string;
+  chainType: string;
+  contactNumber: number;
+  createdDate: string;
+  description: string;
+  email: string;
+  image: string;
+  lastUpdatedAt: string;
+  menuId: string;
+  paymentModes: {
+    CRYPTO: boolean;
+    STRIPE: boolean;
+    UPI: boolean;
+    COUNTER: boolean;
+  };
+  paymentsEnabled: boolean;
+  restaurantIds: number[];
+  restaurantName: string;
+  role: string;
+}
 
 export function Profile() {
   const { user } = useAuthStore();
@@ -21,15 +43,15 @@ export function Profile() {
 
   useEffect(() => {
     const loadProfile = async () => {
-      if (!user?.email) {
-        toast.error("User email not found");
+      if (!user?.adminId) {
+        toast.error("Admin ID not found");
         return;
       }
 
       try {
-        const data = await getRestaurantProfile(user.email);
+        const data = await getRestaurantProfile(user.adminId);
         setProfileData(data);
-        setCurrentImageUrl(data.image || "");
+        setCurrentImageUrl(data.image || "https://via.placeholder.com/150");
       } catch (error) {
         toast.error("Failed to load restaurant profile");
       } finally {
@@ -38,7 +60,7 @@ export function Profile() {
     };
 
     loadProfile();
-  }, [user?.email]);
+  }, [user?.adminId]);
 
   const fetchWithCache = async (imageUrl: string) => {
     try {
@@ -209,16 +231,16 @@ export function Profile() {
           <div className="grid grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Restaurant Name
+                Restaurant Name *
               </label>
               <div className="relative">
                 <Building2 className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  value={profileData.name}
+                  value={profileData.restaurantName}
                   onChange={(e) =>
                     setProfileData((prev) =>
-                      prev ? { ...prev, name: e.target.value } : null
+                      prev ? { ...prev, restaurantName: e.target.value } : null
                     )
                   }
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
@@ -229,16 +251,21 @@ export function Profile() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Contact Number
+                Contact Number *
               </label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="tel"
-                  value={profileData.contactNo}
+                  value={profileData.contactNumber}
                   onChange={(e) =>
                     setProfileData((prev) =>
-                      prev ? { ...prev, contactNo: e.target.value } : null
+                      prev
+                        ? {
+                            ...prev,
+                            contactNumber: parseInt(e.target.value) || 0,
+                          }
+                        : null
                     )
                   }
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
@@ -249,7 +276,7 @@ export function Profile() {
 
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
+                Description *
               </label>
               <textarea
                 value={profileData.description}
@@ -266,7 +293,7 @@ export function Profile() {
 
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Address
+                Address *
               </label>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -281,6 +308,33 @@ export function Profile() {
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f15927] focus:border-transparent"
                   disabled={!isEditing}
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Additional Info */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              Additional Information
+            </h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Chain Type</p>
+                <p className="font-medium">{profileData.chainType}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Role</p>
+                <p className="font-medium">{profileData.role}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Email</p>
+                <p className="font-medium">{profileData.email}</p>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <p className="text-sm text-gray-600">Payments Enabled</p>
+                <p className="font-medium">
+                  {profileData.paymentsEnabled ? "Yes" : "No"}
+                </p>
               </div>
             </div>
           </div>

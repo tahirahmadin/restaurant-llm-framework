@@ -18,6 +18,7 @@ import {
 export function Payments() {
   const {
     user,
+    adminId,
     bscBaseAddress: storedAddress,
     setBSCBaseAddress: setStoredAddress,
   } = useAuthStore();
@@ -36,12 +37,12 @@ export function Payments() {
 
   // Function to load restaurant profile
   const loadProfile = async () => {
-    if (!user?.restaurantId) {
+    if (!adminId) {
       toast.error("Restaurant ID not found");
       return;
     }
     try {
-      const profile = await getRestaurantProfile(user.restaurantId);
+      const profile = await getRestaurantProfile(adminId);
       setPaymentsEnabled(profile.paymentsEnabled);
       setStripeAccountId(profile.stripeAccountId || null);
 
@@ -60,7 +61,7 @@ export function Payments() {
 
   useEffect(() => {
     loadProfile();
-  }, [user?.restaurantId, setStoredAddress]);
+  }, [adminId, setStoredAddress]);
 
   const handleSaveBSCBaseAddress = async () => {
     if (!user?.restaurantId || !user?.username) {
